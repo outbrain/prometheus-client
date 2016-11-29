@@ -1,6 +1,7 @@
 package com.outbrain.swinfra.metrics
 
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import static com.outbrain.swinfra.metrics.Counter.CounterBuilder;
 
@@ -10,52 +11,26 @@ I chose the CounterBuilder as a specimen for the tests
  */
 class BuilderTest extends Specification {
 
-    def 'CounterBuilder should throw an exception on null name'() {
+    @Unroll
+    def 'builder should throw exception on  name #name help #help and labels #labels'() {
+        given:
+            AbstractMetricBuilder builder = new CounterBuilder(name, help)
+            if (labels) {
+                builder = builder.withLabels(labels as String[])
+            }
         when:
-            new CounterBuilder(null, "some help").build()
+            builder.build()
         then:
-            final IllegalArgumentException ex = thrown()
-            ex.message.contains("name")
-    }
+            def ex = thrown IllegalArgumentException
+            ex.message.contains(expectedInErrorMessage)
+        where:
+            name        | help        | labels          | expectedInErrorMessage
+            null        | "some help" | null            | "name"
+            "   "       | "some help" | null            | "name"
+            "some name" | null        | null            | "help"
+            "some name" | "  "        | null            | "help"
+            "some name" | "some help" | ["label", null] | "Label"
+            "some name" | "some help" | ["label", "  "] | "Label"
 
-    def 'CounterBuilder should throw an exception on empty name'() {
-        when:
-            new CounterBuilder("     ", "some help").build()
-        then:
-            final IllegalArgumentException ex = thrown()
-            ex.message.contains("name")
     }
-
-    def 'CounterBuilder should throw an exception on null help message'() {
-        when:
-            new CounterBuilder("some name", null).build()
-        then:
-            final IllegalArgumentException ex = thrown()
-            ex.message.contains("help")
-    }
-
-    def 'CounterBuilder should throw an exception on empty help message'() {
-        when:
-            new CounterBuilder("some name", "      ").build()
-        then:
-            final IllegalArgumentException ex = thrown()
-            ex.message.contains("help")
-    }
-
-    def 'CounterBuilder should throw an exception on null label'() {
-        when:
-            new CounterBuilder("some name", "some help").withLabels("label", null).build()
-        then:
-            final IllegalArgumentException ex = thrown()
-            ex.message.contains("Label")
-    }
-
-    def 'CounterBuilder should throw an exception on empty label'() {
-        when:
-            new CounterBuilder("some name", "some help").withLabels("label", "    ").build()
-        then:
-            final IllegalArgumentException ex = thrown()
-            ex.message.contains("Label")
-    }
-
 }
