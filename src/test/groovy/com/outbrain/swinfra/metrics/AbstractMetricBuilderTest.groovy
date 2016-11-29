@@ -3,18 +3,12 @@ package com.outbrain.swinfra.metrics
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static com.outbrain.swinfra.metrics.Counter.CounterBuilder;
-
-/*
-This is a test for the AbstractMetricBuilder class, since all builders should inherit from it
-I chose the CounterBuilder as a specimen for the tests
- */
-class BuilderTest extends Specification {
+class AbstractMetricBuilderTest extends Specification {
 
     @Unroll
     def 'builder should throw exception on  name #name help #help and labels #labels'() {
         given:
-            AbstractMetricBuilder builder = new CounterBuilder(name, help)
+            AbstractMetricBuilder builder = new MyBuilder(name, help)
             if (labels) {
                 builder = builder.withLabels(labels as String[])
             }
@@ -31,6 +25,17 @@ class BuilderTest extends Specification {
             "some name" | "  "        | null            | "help"
             "some name" | "some help" | ["label", null] | "Label"
             "some name" | "some help" | ["label", "  "] | "Label"
+    }
 
+    private class MyBuilder extends AbstractMetricBuilder {
+
+        MyBuilder(String name, String help) {
+            super(name, help)
+        }
+
+        @Override
+        protected AbstractMetric create(String fullName, String help, String[] labelNames) {
+            return null
+        }
     }
 }
