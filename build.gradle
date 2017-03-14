@@ -31,7 +31,9 @@ dependencies {
     jmhCompile(
         project,
         'org.openjdk.jmh:jmh-core:0.9',
-        'org.openjdk.jmh:jmh-generator-annprocess:0.9'
+        'org.openjdk.jmh:jmh-generator-annprocess:0.9',
+        'io.prometheus:simpleclient:0.0.18',
+        'io.prometheus:simpleclient_common:0.0.18',
     )
 }
 

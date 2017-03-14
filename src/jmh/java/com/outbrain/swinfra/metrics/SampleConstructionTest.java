@@ -11,6 +11,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -35,6 +36,33 @@ public class SampleConstructionTest {
     private Summary summary;
     private Histogram histogram;
 
+    private List<Sample> samples;
+    private int expected;
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    @OutputTimeUnit(TimeUnit.SECONDS)
+    public void measureThroughputOfCounter() throws InterruptedException {
+        samples = counter.getSample(SAMPLE_CREATOR).samples;
+        expected = NUMBER_OF_SAMPLES;
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    @OutputTimeUnit(TimeUnit.SECONDS)
+    public void measureThroughputOfHistogram() throws InterruptedException {
+        samples = histogram.getSample(SAMPLE_CREATOR).samples;
+        expected = NUMBER_OF_SAMPLES * 103;
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    @OutputTimeUnit(TimeUnit.SECONDS)
+    public void measureThroughputOfSummary() throws InterruptedException {
+        samples = summary.getSample(SAMPLE_CREATOR).samples;
+        expected = NUMBER_OF_SAMPLES * 8;
+    }
+
     @Setup
     public void setUp() {
         counter = new Counter.CounterBuilder(NAME, HELP)
@@ -56,29 +84,8 @@ public class SampleConstructionTest {
         }
     }
 
-    @Benchmark
-    @BenchmarkMode(Mode.Throughput)
-    @OutputTimeUnit(TimeUnit.SECONDS)
-    public void measureThroughputOfCounter() throws InterruptedException {
-        verify(NUMBER_OF_SAMPLES, counter.getSample(SAMPLE_CREATOR).samples);
-    }
-
-    @Benchmark
-    @BenchmarkMode(Mode.Throughput)
-    @OutputTimeUnit(TimeUnit.SECONDS)
-    public void measureThroughputOfHistogram() throws InterruptedException {
-        verify(103 * NUMBER_OF_SAMPLES, histogram.getSample(SAMPLE_CREATOR).samples);
-    }
-
-    @Benchmark
-    @BenchmarkMode(Mode.Throughput)
-    @OutputTimeUnit(TimeUnit.SECONDS)
-    public void measureThroughputOfSummary() throws InterruptedException {
-        verify(8 * NUMBER_OF_SAMPLES, summary.getSample(SAMPLE_CREATOR).samples);
-    }
-
-
-    private void verify(final int expected, final List<Sample> samples) {
+    @TearDown
+    public void verify() {
         if (expected != samples.size()) {
             throw new RuntimeException("Returned wrong number of samples: " + samples.size());
         }
