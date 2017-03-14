@@ -74,20 +74,21 @@ public class PublishMetricsTest {
 
     @TearDown
     public void verify() {
-        assert expected.equals(output);
+        if (!expected.equals(output)) {
+            throw new RuntimeException("Unexpected output");
+        }
     }
-
 
     private MetricCollector createCollector() {
         final MetricRegistry registry = new MetricRegistry();
-        final Counter counter = new Counter.CounterBuilder(NAME, HELP)
+        final Counter counter = new Counter.CounterBuilder("Counter" + NAME, HELP)
             .withLabels("label1", "label2")
             .build();
-        final Histogram histogram = new Histogram.HistogramBuilder(NAME, HELP)
+        final Histogram histogram = new Histogram.HistogramBuilder("Histogram" + NAME, HELP)
             .withLabels("label1", "label2")
             .withEqualWidthBuckets(0, 1000, 100)
             .build();
-        final Summary summary = new Summary.SummaryBuilder(NAME, HELP)
+        final Summary summary = new Summary.SummaryBuilder("Summary" + NAME, HELP)
             .withLabels("label1", "label2")
             .withClock(new Clock.SystemClock(TimeUnit.MILLISECONDS))
             .build();
