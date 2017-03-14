@@ -245,8 +245,8 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
      *   Here are two examples for what the method
      *   <ul>
      *     <li>withEqualWidthBuckets(0.5, 1, 1) - [0.5, +Inf]</li>
-     *     <li>withEqualWidthBuckets(0.5, 4, 1) - [0.5, 1.5, 2.5, 3.5, +Inf]</li>
-     *     <li>withEqualWidthBuckets(0.5, 100, 1) - Probably too many buckets</li>
+     *     <li>withEqualWidthBuckets(0.5, 1, 4) - [0.5, 1.5, 2.5, 3.5, +Inf]</li>
+     *     <li>withEqualWidthBuckets(0.5, 1, 100) - Probably too many buckets</li>
      *   </ul>
      * </p>
      *
