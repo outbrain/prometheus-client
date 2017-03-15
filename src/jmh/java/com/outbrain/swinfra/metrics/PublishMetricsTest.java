@@ -1,8 +1,9 @@
 package com.outbrain.swinfra.metrics;
 
+import com.outbrain.swinfra.metrics.format.CollectorRegistryFormatter;
+import com.outbrain.swinfra.metrics.format.CollectorRegistryFormatterFactory;
 import com.outbrain.swinfra.metrics.samples.StaticLablesSampleCreator;
 import com.outbrain.swinfra.metrics.timing.Clock;
-import io.prometheus.client.Collector.MetricFamilySamples;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -16,11 +17,11 @@ import org.openjdk.jmh.annotations.TearDown;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.concurrent.TimeUnit;
 
 /*
@@ -40,30 +41,39 @@ public class PublishMetricsTest {
 
 
     private final CollectorRegistry collectorRegistry = new CollectorRegistry();
+    private final MetricCollectorRegistry metricCollectorRegistry = new MetricCollectorRegistry();
+    private CollectorRegistryFormatter formatter = CollectorRegistryFormatterFactory.TEXT_004.create(metricCollectorRegistry);
 
 
     @Benchmark
     @BenchmarkMode(Mode.Throughput)
     @OutputTimeUnit(TimeUnit.SECONDS)
-    public void measurePrometheusRegistryThroughput() throws InterruptedException {
-        output = simulateEndpoint(collectorRegistry.metricFamilySamples());
+    public void measurePrometheusPullSamplesThroughput() throws InterruptedException {
+        simulateEndpoint((writer) -> TextFormat.write004(writer, collectorRegistry.metricFamilySamples()));
     }
 
-    private String simulateEndpoint(final Enumeration<MetricFamilySamples> samples) {
+    @Benchmark
+    @BenchmarkMode(Mode.Throughput)
+    @OutputTimeUnit(TimeUnit.SECONDS)
+    public void measureSampleConsumerThroughput() throws InterruptedException {
+        simulateEndpoint((writer) -> formatter.format(writer));
+    }
+
+    private void simulateEndpoint(final ImplementationInvoker invoker) {
         try (final StringWriter writer = new StringWriter()) {
-            TextFormat.write004(writer, collectorRegistry.metricFamilySamples());
-            return writer.toString();
+            invoker.apply(writer);
+            output = writer.toString();
         } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-
     @Setup
     public void setUp() {
-        collectorRegistry.register(createCollector());
-        collectorRegistry.register(createCollector());
-        collectorRegistry.register(createCollector());
+        for (int i = 0; i < 3; i++) {
+            collectorRegistry.register(createCollector());
+            metricCollectorRegistry.register(createCollector());
+        }
 
         try {
             expected = new String(Files.readAllBytes(Paths.get(ClassLoader.getSystemResource("PublishMetricsTestOutput.txt").toURI())));
@@ -75,6 +85,9 @@ public class PublishMetricsTest {
     @TearDown
     public void verify() {
         if (!expected.equals(output)) {
+            System.out.println("======");
+            System.out.println(output);
+            System.out.println("======");
             throw new RuntimeException("Unexpected output");
         }
     }
@@ -103,5 +116,11 @@ public class PublishMetricsTest {
         registry.getOrRegister(summary);
 
         return new MetricCollector(registry, new StaticLablesSampleCreator(Collections.emptyMap()));
+    }
+
+    @FunctionalInterface
+    private interface ImplementationInvoker {
+
+        void apply(Writer writer) throws IOException;
     }
 }
