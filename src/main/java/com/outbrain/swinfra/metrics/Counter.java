@@ -9,6 +9,7 @@ import com.outbrain.swinfra.metrics.samples.SampleCreator;
 import io.prometheus.client.Collector;
 import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 
+import java.io.IOException;
 import java.util.List;
 
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
@@ -58,6 +59,13 @@ public class Counter extends AbstractMetric<com.codahale.metrics.Counter> {
   @Override
   public Collector.Type getType() {
     return COUNTER;
+  }
+
+  @Override
+  public void forEachSample(final SampleConsumer sampleConsumer) throws IOException {
+    for (final MetricData<com.codahale.metrics.Counter> metricData : allMetricData()) {
+      sampleConsumer.apply(getName(), metricData.getMetric().getCount(), metricData.getLabelValues(), null, null);
+    }
   }
 
   @Override

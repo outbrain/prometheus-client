@@ -15,11 +15,12 @@ public class StaticLablesSampleCreator implements SampleCreator {
 
   private final List<String> staticLabelNames;
   private final List<String> staticLabelValues;
+  private final Map<String, String> staticLabels;
 
   public StaticLablesSampleCreator(final Map<String, String> staticLabels) {
     staticLabelNames = new ArrayList<>(staticLabels.keySet());
     staticLabelValues = new ArrayList<>(staticLabels.values());
-
+    this.staticLabels = staticLabels;
   }
 
   @Override
@@ -38,5 +39,10 @@ public class StaticLablesSampleCreator implements SampleCreator {
     finalLabelValues.addAll(labelValues);
 
     return new Sample(name, finalLabelNames, finalLabelValues, value);
+  }
+
+  @Override
+  public Map<String, String> getStaticLabels() {
+    return staticLabels;
   }
 }

@@ -8,6 +8,7 @@ import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,11 +36,18 @@ abstract class AbstractMetric<T> implements Metric {
 
   abstract List<Sample> createSamples(MetricData<T> metricData, SampleCreator sampleCreator);
 
-  String getName() {
+  @Override
+  public String getName() {
     return name;
   }
 
-  List<String> getLabelNames() {
+  @Override
+  public String getHelp() {
+    return help;
+  }
+
+  @Override
+  public List<String> getLabelNames() {
     return labelNames;
   }
 
@@ -61,10 +69,13 @@ abstract class AbstractMetric<T> implements Metric {
     return childMetricRepo.metricForLabels(labelValues).getMetric();
   }
 
+  Collection<MetricData<T>> allMetricData() {
+    return childMetricRepo.all();
+  }
+
   @Override
   public MetricFamilySamples getSample(final SampleCreator sampleCreator) {
-    final List<Sample> samples = childMetricRepo
-        .all().stream()
+    final List<Sample> samples = allMetricData().stream()
         .flatMap(metricData -> createSamples(metricData, sampleCreator).stream())
         .collect(Collectors.toList());
     return new MetricFamilySamples(name, getType(), help, samples);

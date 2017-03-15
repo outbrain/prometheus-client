@@ -6,16 +6,18 @@ import com.outbrain.swinfra.metrics.timing.Timer
 import spock.lang.Specification
 import spock.lang.Unroll
 
-import static com.outbrain.swinfra.metrics.Histogram.HistogramBuilder
+import static com.outbrain.swinfra.metrics.Histogram.*
 import static io.prometheus.client.Collector.MetricFamilySamples
 import static io.prometheus.client.Collector.MetricFamilySamples.Sample
 import static io.prometheus.client.Collector.Type.HISTOGRAM
 
 class HistogramTest extends Specification {
 
-    private static final SampleCreator sampleCreator = new StaticLablesSampleCreator([:])
     private static final String NAME = "myHisto"
     private static final String HELP = "HELP"
+
+    private final SampleConsumer sampleConsumer = Mock(SampleConsumer)
+    private final SampleCreator sampleCreator = new StaticLablesSampleCreator([:])
 
     def 'Histogram should return the correct type'() {
         given:
@@ -30,10 +32,33 @@ class HistogramTest extends Specification {
             final List<Sample> samples = generateHistogramSamples(["0.005": 0, "0.01": 0, "0.025": 0, "0.05": 0, "0.075": 0, "0.1": 0, "0.25": 0, "0.5": 0, "0.75": 0, "1.0": 0, "2.5": 0, "5.0": 0, "7.5": 0, "10.0": 0, "+Inf": 0], 0)
             final MetricFamilySamples metricFamilySamples = new MetricFamilySamples(NAME, HISTOGRAM, HELP, samples)
 
+        when:
             final Histogram histogram = new HistogramBuilder(NAME, HELP).build()
 
-        expect:
+        then:
             histogram.getSample(sampleCreator) == metricFamilySamples
+
+        when:
+            histogram.forEachSample(sampleConsumer)
+        then:
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.005')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.01')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.025')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.05')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.075')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.1')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.25')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.5')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.75')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '1.0')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '2.5')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '5.0')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '7.5')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '10.0')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '+Inf')
+            1 * sampleConsumer.apply(NAME+"_sum", 0, [], null, null)
+            1 * sampleConsumer.apply(NAME+"_count", 0, [], null, null)
+
     }
 
     def 'Histogram with defined buckets should return samples relevant for these buckets'() {
@@ -55,6 +80,16 @@ class HistogramTest extends Specification {
 
         then:
             histogram.getSample(sampleCreator) == metricFamilySamples
+
+        when:
+            histogram.forEachSample(sampleConsumer)
+        then:
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 1, [], BUCKET_LABEL, '1.0')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 3, [], BUCKET_LABEL, '10.0')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 5, [], BUCKET_LABEL, '100.0')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 6, [], BUCKET_LABEL, '+Inf')
+            1 * sampleConsumer.apply(NAME+"_sum", 1 + 5 + 5 + 50 + 50 + 150, [], null, null)
+            1 * sampleConsumer.apply(NAME+"_count", 6, [], null, null)
     }
 
     def 'Histogram with defined buckets and labels should return correct samples with correct lables'() {
@@ -114,10 +149,18 @@ class HistogramTest extends Specification {
             final List<Sample> samples = generateHistogramSamples(["0.5": 0, "+Inf": 0], 0)
             final MetricFamilySamples metricFamilySamples = new MetricFamilySamples(NAME, HISTOGRAM, HELP, samples)
 
+        when:
             final Histogram histogram = new HistogramBuilder(NAME, HELP).withEqualWidthBuckets(0.5, 1, 1).build()
 
-        expect:
+        then:
             histogram.getSample(sampleCreator) == metricFamilySamples
+
+        when:
+            histogram.forEachSample(sampleConsumer)
+        then:
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '0.5')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '+Inf')
+            0 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, _, _, BUCKET_LABEL, _)
     }
 
     def "A Histogram with equal width buckets should return the correct buckets"() {
@@ -149,6 +192,15 @@ class HistogramTest extends Specification {
 
         then:
             histogram.getSample(sampleCreator) == metricFamilySamples
+
+        when:
+            histogram.forEachSample(sampleConsumer)
+        then:
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 1, [], BUCKET_LABEL, '1.5')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 2, [], BUCKET_LABEL, '2.5')
+            1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 3, [], BUCKET_LABEL, '+Inf')
+            1 * sampleConsumer.apply(NAME+"_sum", 6, [], null, null)
+            1 * sampleConsumer.apply(NAME+"_count", 3, [], null, null)
     }
 
     /**

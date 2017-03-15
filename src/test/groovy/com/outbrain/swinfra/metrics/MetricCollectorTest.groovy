@@ -6,7 +6,6 @@ import spock.lang.Specification
 import static io.prometheus.client.Collector.MetricFamilySamples
 import static io.prometheus.client.Collector.MetricFamilySamples.Sample
 import static io.prometheus.client.Collector.Type.COUNTER
-import static java.util.Collections.emptyList
 
 class MetricCollectorTest extends Specification {
 
@@ -30,6 +29,25 @@ class MetricCollectorTest extends Specification {
         
         then:         
             collectedSamples.sort() == samples.sort()
+    }
+
+    def 'force users to know their registry when they register and not have "default" registries floating around'() {
+        when:
+            metricCollector.register()
+        then:
+            thrown UnsupportedOperationException
+    }
+
+    def 'force users to know their registry when they register and not have two ways of doing the same thing'() {
+        when:
+            metricCollector.register(Mock(CollectorRegistry))
+        then:
+            thrown UnsupportedOperationException
+    }
+
+    def 'i can iterate over the metrics in a collector'() {
+        expect:
+            [ 'Counter1', 'Counter2' ] as Set == metricCollector.iterator().collect { it.name } as Set
     }
 
     /*
