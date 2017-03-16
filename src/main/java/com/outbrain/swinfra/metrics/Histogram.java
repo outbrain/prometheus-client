@@ -74,8 +74,8 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
     this.buckets = buckets;
     this.clock = clock;
     this.bucketSampleName = name + SAMPLE_NAME_BUCKET_SUFFIX;
-    this.countSampleName = name + "_count";
-    this.sumSampleName = name + "_sum";
+    this.countSampleName = name + COUNT_SUFFIX;
+    this.sumSampleName = name + SUM_SUFFIX;
   }
 
   @Override
@@ -123,8 +123,8 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
 
     //Add count and sum samples
     final long lastBucketValue = bucketValues.getBuckets()[bucketValues.getBuckets().length - 1];
-    samples.add(sampleCreator.createSample(getName() + "_count", getLabelNames(), metricData.getLabelValues(), lastBucketValue));
-    samples.add(sampleCreator.createSample(getName() + "_sum", getLabelNames(), metricData.getLabelValues(), bucketValues.getSum()));
+    samples.add(sampleCreator.createSample(getName() + COUNT_SUFFIX, getLabelNames(), metricData.getLabelValues(), lastBucketValue));
+    samples.add(sampleCreator.createSample(getName() + SUM_SUFFIX, getLabelNames(), metricData.getLabelValues(), bucketValues.getSum()));
 
     return samples;
   }

@@ -68,8 +68,8 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
     super(name, help, labelNames);
     this.reservoirSupplier = reservoirSupplier;
     this.clock = clock;
-    this.countSampleName = name + "_count";
-    this.sumSampleName = name + "_sum";
+    this.countSampleName = name + COUNT_SUFFIX;
+    this.sumSampleName = name + SUM_SUFFIX;
   }
 
   public void observe(final int value, final String... labelValues) {

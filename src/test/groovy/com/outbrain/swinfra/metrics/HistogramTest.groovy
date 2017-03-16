@@ -7,6 +7,8 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import static com.outbrain.swinfra.metrics.Histogram.*
+import static com.outbrain.swinfra.metrics.timing.TimingMetric.COUNT_SUFFIX
+import static com.outbrain.swinfra.metrics.timing.TimingMetric.SUM_SUFFIX
 import static io.prometheus.client.Collector.MetricFamilySamples
 import static io.prometheus.client.Collector.MetricFamilySamples.Sample
 import static io.prometheus.client.Collector.Type.HISTOGRAM
@@ -56,8 +58,8 @@ class HistogramTest extends Specification {
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '7.5')
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '10.0')
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 0, [], BUCKET_LABEL, '+Inf')
-            1 * sampleConsumer.apply(NAME+"_sum", 0, [], null, null)
-            1 * sampleConsumer.apply(NAME+"_count", 0, [], null, null)
+            1 * sampleConsumer.apply(NAME+SUM_SUFFIX, 0, [], null, null)
+            1 * sampleConsumer.apply(NAME+COUNT_SUFFIX, 0, [], null, null)
 
     }
 
@@ -88,8 +90,8 @@ class HistogramTest extends Specification {
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 3, [], BUCKET_LABEL, '10.0')
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 5, [], BUCKET_LABEL, '100.0')
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 6, [], BUCKET_LABEL, '+Inf')
-            1 * sampleConsumer.apply(NAME+"_sum", 1 + 5 + 5 + 50 + 50 + 150, [], null, null)
-            1 * sampleConsumer.apply(NAME+"_count", 6, [], null, null)
+            1 * sampleConsumer.apply(NAME+SUM_SUFFIX, 1 + 5 + 5 + 50 + 50 + 150, [], null, null)
+            1 * sampleConsumer.apply(NAME+COUNT_SUFFIX, 6, [], null, null)
     }
 
     def 'Histogram with defined buckets and labels should return correct samples with correct lables'() {
@@ -199,8 +201,8 @@ class HistogramTest extends Specification {
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 1, [], BUCKET_LABEL, '1.5')
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 2, [], BUCKET_LABEL, '2.5')
             1 * sampleConsumer.apply(NAME+SAMPLE_NAME_BUCKET_SUFFIX, 3, [], BUCKET_LABEL, '+Inf')
-            1 * sampleConsumer.apply(NAME+"_sum", 6, [], null, null)
-            1 * sampleConsumer.apply(NAME+"_count", 3, [], null, null)
+            1 * sampleConsumer.apply(NAME+SUM_SUFFIX, 6, [], null, null)
+            1 * sampleConsumer.apply(NAME+COUNT_SUFFIX, 3, [], null, null)
     }
 
     /**
