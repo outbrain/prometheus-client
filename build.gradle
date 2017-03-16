@@ -111,8 +111,8 @@ task jmh(type: JavaExec, description: 'Executing JMH benchmarks', group: 'jmh') 
             args '-prof', it
         }
     }
-    args '-jvmArgsPrepend', '-Xmx3072m'
-    args '-jvmArgsAppend', '-Xms3072m'
+    args '-jvmArgsPrepend', '-Xmx1024m'
+    args '-jvmArgsAppend', '-Xms1024m'
     if(jvmArgs) {
         for(jvmArg in jvmArgs.split(' ')) {
             args '-jvmArgsAppend', jvmArg
