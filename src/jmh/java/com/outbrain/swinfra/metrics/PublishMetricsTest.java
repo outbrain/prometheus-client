@@ -85,9 +85,6 @@ public class PublishMetricsTest {
     @TearDown
     public void verify() {
         if (!expected.equals(output)) {
-            System.out.println("======");
-            System.out.println(output);
-            System.out.println("======");
             throw new RuntimeException("Unexpected output");
         }
     }
@@ -106,7 +103,7 @@ public class PublishMetricsTest {
             .withClock(new Clock.SystemClock(TimeUnit.MILLISECONDS))
             .build();
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             counter.inc(i, "val", "val" + i);
             histogram.observe((double)i, "val", "val" + i);
             summary.observe(i, "val", "val" + i);
