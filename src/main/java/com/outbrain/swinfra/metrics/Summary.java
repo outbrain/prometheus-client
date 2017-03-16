@@ -15,16 +15,17 @@ import com.outbrain.swinfra.metrics.samples.SampleCreator;
 import com.outbrain.swinfra.metrics.timing.Clock;
 import com.outbrain.swinfra.metrics.timing.Timer;
 import com.outbrain.swinfra.metrics.timing.TimingMetric;
-import com.outbrain.swinfra.metrics.utils.QuantileUtils;
 import io.prometheus.client.Collector;
 import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static com.outbrain.swinfra.metrics.timing.Clock.DEFAULT_CLOCK;
+import static com.outbrain.swinfra.metrics.utils.LabelUtils.addLabelToList;
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
 import static io.prometheus.client.Collector.Type.SUMMARY;
 
@@ -125,7 +126,28 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
   @Override
   List<Sample> createSamples(final MetricData<Histogram> metricData,
                              final SampleCreator sampleCreator) {
-    return QuantileUtils.createSamplesFromSnapshot(metricData, getName(), getLabelNames(), sampleCreator);
+    final List<String> labelNames = getLabelNames();
+    final String name = getName();
+    final Snapshot snapshot = metricData.getMetric().getSnapshot();
+    final List<String> labelValues = metricData.getLabelValues();
+
+    final List<String> labels = addLabelToList(labelNames, QUANTILE_LABEL);
+
+    long sum = 0;
+    for (final long value : snapshot.getValues()) {
+      sum += value;
+    }
+
+    return Arrays.asList(
+        sampleCreator.createSample(name, labels, addLabelToList(labelValues, "0.5"), snapshot.getMedian()),
+        sampleCreator.createSample(name, labels, addLabelToList(labelValues, "0.75"), snapshot.get75thPercentile()),
+        sampleCreator.createSample(name, labels, addLabelToList(labelValues, "0.95"), snapshot.get95thPercentile()),
+        sampleCreator.createSample(name, labels, addLabelToList(labelValues, "0.98"), snapshot.get98thPercentile()),
+        sampleCreator.createSample(name, labels, addLabelToList(labelValues, "0.99"), snapshot.get99thPercentile()),
+        sampleCreator.createSample(name, labels, addLabelToList(labelValues, "0.999"), snapshot.get999thPercentile()),
+        sampleCreator.createSample(name + COUNT_SUFFIX, labelNames, labelValues, metricData.getMetric().getCount()),
+        sampleCreator.createSample(name + SUM_SUFFIX, labelNames, labelValues, sum)
+    );
   }
 
   @Override
