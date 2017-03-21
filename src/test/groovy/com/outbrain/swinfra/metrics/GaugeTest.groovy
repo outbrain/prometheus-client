@@ -1,35 +1,31 @@
 package com.outbrain.swinfra.metrics
 
-import com.outbrain.swinfra.metrics.samples.SampleCreator
-import com.outbrain.swinfra.metrics.samples.StaticLablesSampleCreator
 import spock.lang.Specification
 
 import java.util.function.DoubleSupplier
 
 import static com.outbrain.swinfra.metrics.Gauge.GaugeBuilder
-import static io.prometheus.client.Collector.MetricFamilySamples
-import static io.prometheus.client.Collector.MetricFamilySamples.Sample
-import static io.prometheus.client.Collector.Type.GAUGE
 
 class GaugeTest extends Specification {
 
     private static final String NAME = "NAME"
     private static final String HELP = "HELP"
-    private static final SampleCreator sampleCreator = new StaticLablesSampleCreator([:])
+
+
+    private final SampleConsumer sampleConsumer = Mock(SampleConsumer)
 
     def 'Gauge should return the correct samples without labels'() {
         final double expectedValue = 239487234
 
         given:
-            final List<Sample> samples = [new Sample(NAME, [], [], expectedValue)]
-            final MetricFamilySamples metricFamilySamples = new MetricFamilySamples(NAME, GAUGE, HELP, samples)
-        when:
             final Gauge gauge = new GaugeBuilder(NAME, HELP)
                 .withValueSupplier({ expectedValue } as DoubleSupplier)
                 .build()
 
+        when:
+            gauge.forEachSample(sampleConsumer)
         then:
-            gauge.getSample(sampleCreator) == metricFamilySamples
+            1 * sampleConsumer.apply(NAME, expectedValue, [], null, null)
     }
 
     def 'Gauge should return the correct samples with labels'() {
@@ -39,19 +35,16 @@ class GaugeTest extends Specification {
             final double expectedValue1 = 239487
             final String[] labelValues2 = ["val2", "val3"]
             final double expectedValue2 = 181239813
-        when:
             final Gauge gauge = new GaugeBuilder(NAME, HELP)
                 .withLabels(labelNames)
                 .withValueSupplier({ expectedValue1 } as DoubleSupplier, labelValues1)
                 .withValueSupplier({ expectedValue2 } as DoubleSupplier, labelValues2)
                 .build()
-
-
+        when:
+            gauge.forEachSample(sampleConsumer)
         then:
-            gauge.getSample(sampleCreator) ==
-                    new MetricFamilySamples(NAME, GAUGE, HELP,
-                            [new Sample(NAME, labelNames as List, labelValues1 as List, expectedValue1),
-                             new Sample(NAME, labelNames as List, labelValues2 as List, expectedValue2)])
+            1 * sampleConsumer.apply(NAME, expectedValue1, labelValues1 as List, null, null)
+            1 * sampleConsumer.apply(NAME, expectedValue2, labelValues2 as List, null, null)
     }
 
     def 'GaugeBuilder should throw an exception on null value supplier'() {

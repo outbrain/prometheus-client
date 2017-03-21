@@ -2,14 +2,11 @@ package com.outbrain.swinfra.metrics;
 
 import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
 import com.outbrain.swinfra.metrics.children.MetricData;
-import com.outbrain.swinfra.metrics.samples.SampleCreator;
-import io.prometheus.client.Collector.MetricFamilySamples;
-import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * A base class for all the metrics.
@@ -33,13 +30,18 @@ abstract class AbstractMetric<T> implements Metric {
 
   abstract ChildMetricRepo<T> createChildMetricRepo();
 
-  abstract List<Sample> createSamples(MetricData<T> metricData, SampleCreator sampleCreator);
-
-  String getName() {
+  @Override
+  public String getName() {
     return name;
   }
 
-  List<String> getLabelNames() {
+  @Override
+  public String getHelp() {
+    return help;
+  }
+
+  @Override
+  public List<String> getLabelNames() {
     return labelNames;
   }
 
@@ -61,13 +63,7 @@ abstract class AbstractMetric<T> implements Metric {
     return childMetricRepo.metricForLabels(labelValues).getMetric();
   }
 
-  @Override
-  public MetricFamilySamples getSample(final SampleCreator sampleCreator) {
-    final List<Sample> samples = childMetricRepo
-        .all().stream()
-        .flatMap(metricData -> createSamples(metricData, sampleCreator).stream())
-        .collect(Collectors.toList());
-    return new MetricFamilySamples(name, getType(), help, samples);
+  Collection<MetricData<T>> allMetricData() {
+    return childMetricRepo.all();
   }
-
 }

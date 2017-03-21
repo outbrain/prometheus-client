@@ -5,25 +5,25 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.SlidingTimeWindowReservoir;
 import com.codahale.metrics.SlidingWindowReservoir;
+import com.codahale.metrics.Snapshot;
 import com.codahale.metrics.UniformReservoir;
 import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
 import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
 import com.outbrain.swinfra.metrics.children.MetricData;
 import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
-import com.outbrain.swinfra.metrics.samples.SampleCreator;
-import com.outbrain.swinfra.metrics.timing.*;
+import com.outbrain.swinfra.metrics.timing.Clock;
 import com.outbrain.swinfra.metrics.timing.Timer;
-import com.outbrain.swinfra.metrics.utils.QuantileUtils;
-import io.prometheus.client.Collector;
-import io.prometheus.client.Collector.MetricFamilySamples.Sample;
+import com.outbrain.swinfra.metrics.timing.TimingMetric;
+import com.outbrain.swinfra.metrics.utils.MetricType;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static com.outbrain.swinfra.metrics.timing.Clock.DEFAULT_CLOCK;
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
-import static io.prometheus.client.Collector.Type.SUMMARY;
+import static com.outbrain.swinfra.metrics.utils.MetricType.SUMMARY;
 
 /**
  * An implementation of a Summary metric. A summary is a histogram that samples its measurements and has no predefined
@@ -50,8 +50,12 @@ import static io.prometheus.client.Collector.Type.SUMMARY;
  */
 public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
 
+  public static final String QUANTILE_LABEL = "quantile";
+
   private final Supplier<Reservoir> reservoirSupplier;
   private final Clock clock;
+  private final String countSampleName;
+  private final String sumSampleName;
 
   private Summary(final String name,
                   final String help,
@@ -61,6 +65,8 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
     super(name, help, labelNames);
     this.reservoirSupplier = reservoirSupplier;
     this.clock = clock;
+    this.countSampleName = name + COUNT_SUFFIX;
+    this.sumSampleName = name + SUM_SUFFIX;
   }
 
   public void observe(final int value, final String... labelValues) {
@@ -85,14 +91,30 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
   }
 
   @Override
-  public Collector.Type getType() {
+  public MetricType getType() {
     return SUMMARY;
   }
 
   @Override
-  List<Sample> createSamples(final MetricData<Histogram> metricData,
-                             final SampleCreator sampleCreator) {
-    return QuantileUtils.createSamplesFromSnapshot(metricData, getName(), getLabelNames(), sampleCreator);
+  public void forEachSample(final SampleConsumer sampleConsumer) throws IOException {
+    for (final MetricData<Histogram> metricData : allMetricData()) {
+      final List<String> labelValues = metricData.getLabelValues();
+      final Snapshot snapshot = metricData.getMetric().getSnapshot();
+      final String name = getName();
+      sampleConsumer.apply(name, snapshot.getMedian(), labelValues, QUANTILE_LABEL,"0.5");
+      sampleConsumer.apply(name, snapshot.get75thPercentile(), labelValues, QUANTILE_LABEL,"0.75");
+      sampleConsumer.apply(name, snapshot.get95thPercentile(), labelValues, QUANTILE_LABEL,"0.95");
+      sampleConsumer.apply(name, snapshot.get98thPercentile(), labelValues, QUANTILE_LABEL,"0.98");
+      sampleConsumer.apply(name, snapshot.get99thPercentile(), labelValues, QUANTILE_LABEL,"0.99");
+      sampleConsumer.apply(name, snapshot.get999thPercentile(), labelValues, QUANTILE_LABEL,"0.999");
+      sampleConsumer.apply(countSampleName, metricData.getMetric().getCount(), labelValues, null, null);
+
+      long sum = 0;
+      for (final long value : snapshot.getValues()) {
+        sum += value;
+      }
+      sampleConsumer.apply(sumSampleName, sum, labelValues, null, null);
+    }
   }
 
   @Override
