@@ -1,7 +1,6 @@
 package com.outbrain.swinfra.metrics
 
 import com.outbrain.swinfra.metrics.format.CollectorFormatter
-import io.prometheus.client.Collector
 import spock.lang.Specification
 import spock.lang.Subject
 
@@ -56,7 +55,7 @@ class MetricCollectorRegistryTest extends Specification {
             registry.register(collector2)
             registry.register(collector3)
             Iterator<CollectorFormatter> iterator = registry.iterator()
-            Set<Collector> iterated = [] as Set
+            Set<MetricCollector> iterated = [] as Set
         when:
             while (iterator.hasNext()) {
                 iterated.add(iterator.next())

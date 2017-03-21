@@ -4,15 +4,13 @@ import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
 import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
 import com.outbrain.swinfra.metrics.children.MetricData;
 import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
-import com.outbrain.swinfra.metrics.samples.SampleCreator;
 import com.outbrain.swinfra.metrics.timing.Clock;
 import com.outbrain.swinfra.metrics.timing.Timer;
 import com.outbrain.swinfra.metrics.timing.TimingMetric;
-import io.prometheus.client.Collector;
+import com.outbrain.swinfra.metrics.utils.MetricType;
 import org.apache.commons.lang3.Validate;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.DoubleAdder;
@@ -20,10 +18,8 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.DoubleStream;
 
 import static com.outbrain.swinfra.metrics.timing.Clock.DEFAULT_CLOCK;
-import static com.outbrain.swinfra.metrics.utils.LabelUtils.addLabelToList;
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
-import static io.prometheus.client.Collector.MetricFamilySamples.Sample;
-import static io.prometheus.client.Collector.Type.HISTOGRAM;
+import static com.outbrain.swinfra.metrics.utils.MetricType.HISTOGRAM;
 
 //todo document the fact that I favored throughput over consistency
 
@@ -106,35 +102,12 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
     }
   }
 
-  @Override
-  List<Sample> createSamples(final MetricData<Buckets> metricData, final SampleCreator sampleCreator) {
-    final BucketValues bucketValues = metricData.getMetric().getValues();
-    final List<Sample> samples = new ArrayList<>(bucketValues.getBuckets().length + 2);
-
-    //Add bucket samples
-    final double[] bucketBounds = metricData.getMetric().bucketBounds;
-    for (int i = 0; i < bucketBounds.length; i++) {
-      final String bucketBound = bucketBoundToString(bucketBounds[i]);
-      samples.add(sampleCreator.createSample(this.getName() + SAMPLE_NAME_BUCKET_SUFFIX,
-                                             addLabelToList(getLabelNames(), BUCKET_LABEL),
-                                             addLabelToList(metricData.getLabelValues(), bucketBound),
-                                             bucketValues.getBuckets()[i]));
-    }
-
-    //Add count and sum samples
-    final long lastBucketValue = bucketValues.getBuckets()[bucketValues.getBuckets().length - 1];
-    samples.add(sampleCreator.createSample(getName() + COUNT_SUFFIX, getLabelNames(), metricData.getLabelValues(), lastBucketValue));
-    samples.add(sampleCreator.createSample(getName() + SUM_SUFFIX, getLabelNames(), metricData.getLabelValues(), bucketValues.getSum()));
-
-    return samples;
-  }
-
   private static String bucketBoundToString(final double bucketBound) {
     return bucketBound == Double.MAX_VALUE ? "+Inf" : String.valueOf(bucketBound);
   }
 
   @Override
-  public Collector.Type getType() {
+  public MetricType getType() {
     return HISTOGRAM;
   }
 

@@ -3,7 +3,6 @@ package com.outbrain.swinfra.metrics.format.text;
 import com.outbrain.swinfra.metrics.Metric;
 import com.outbrain.swinfra.metrics.MetricCollector;
 import com.outbrain.swinfra.metrics.format.CollectorFormatter;
-import io.prometheus.client.Collector;
 
 import java.io.IOException;
 import java.util.List;
@@ -48,7 +47,7 @@ public class TextFormatter implements CollectorFormatter {
 
                     appendable.append("}");
                 }
-                appendable.append(" ").append(Collector.doubleToGoString(value)).append("\n");
+                appendable.append(" ").append(doubleToGoString(value)).append("\n");
             });
         }
     }
@@ -63,7 +62,7 @@ public class TextFormatter implements CollectorFormatter {
 
     private String createHeader(final Metric metric) {
         return "# HELP " + metric.getName() + " " + escapeHelp(metric.getHelp()) + "\n" +
-               "# TYPE " + metric.getName() + " " + typeString(metric.getType()) + "\n";
+               "# TYPE " + metric.getName() + " " + metric.getType().getName() + "\n";
     }
 
     private static String escapeHelp(final String help) {
@@ -74,18 +73,19 @@ public class TextFormatter implements CollectorFormatter {
         return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
     }
 
-    private static String typeString(final Collector.Type type) {
-        switch(type) {
-            case GAUGE:
-                return "gauge";
-            case COUNTER:
-                return "counter";
-            case SUMMARY:
-                return "summary";
-            case HISTOGRAM:
-                return "histogram";
-            default:
-                return "untyped";
+    /**
+     * Convert a double to it's string representation in Go.
+     */
+    private static String doubleToGoString(final double value) {
+        if (value == Double.POSITIVE_INFINITY) {
+            return "+Inf";
         }
+        if (value == Double.NEGATIVE_INFINITY) {
+            return "-Inf";
+        }
+        if (Double.isNaN(value)) {
+            return "NaN";
+        }
+        return Double.toString(value);
     }
 }
