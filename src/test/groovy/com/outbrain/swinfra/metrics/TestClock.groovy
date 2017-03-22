@@ -2,7 +2,7 @@ package com.outbrain.swinfra.metrics
 
 import com.outbrain.swinfra.metrics.timing.Clock
 
-class TestClock implements Clock {
+class TestClock extends com.codahale.metrics.Clock implements Clock {
 
     private long tick = 0
 
