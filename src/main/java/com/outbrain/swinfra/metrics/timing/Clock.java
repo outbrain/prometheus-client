@@ -34,5 +34,6 @@ public interface Clock {
     public long getTick() {
       return (long) (System.nanoTime() * factor);
     }
+
   }
 }

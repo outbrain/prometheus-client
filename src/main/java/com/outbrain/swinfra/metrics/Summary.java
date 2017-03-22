@@ -11,15 +11,16 @@ import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
 import com.outbrain.swinfra.metrics.children.MetricData;
 import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
 import com.outbrain.swinfra.metrics.samples.SampleCreator;
-import com.outbrain.swinfra.metrics.timing.*;
+import com.outbrain.swinfra.metrics.timing.Clock;
 import com.outbrain.swinfra.metrics.timing.Timer;
+import com.outbrain.swinfra.metrics.timing.TimingMetric;
 import com.outbrain.swinfra.metrics.utils.QuantileUtils;
 import io.prometheus.client.Collector;
 import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import static com.outbrain.swinfra.metrics.timing.Clock.DEFAULT_CLOCK;
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
@@ -50,13 +51,13 @@ import static io.prometheus.client.Collector.Type.SUMMARY;
  */
 public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
 
-  private final Supplier<Reservoir> reservoirSupplier;
+  private final Function<Clock, Reservoir> reservoirSupplier;
   private final Clock clock;
 
   private Summary(final String name,
                   final String help,
                   final String[] labelNames,
-                  final Supplier<Reservoir> reservoirSupplier,
+                  final Function<Clock, Reservoir> reservoirSupplier,
                   final Clock clock) {
     super(name, help, labelNames);
     this.reservoirSupplier = reservoirSupplier;
@@ -81,7 +82,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
   }
 
   private Histogram createHistogram() {
-    return new Histogram(reservoirSupplier.get());
+    return new Histogram(reservoirSupplier.apply(clock));
   }
 
   @Override
@@ -103,8 +104,11 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
 
   public static class SummaryBuilder extends AbstractMetricBuilder<Summary, SummaryBuilder> {
 
+    private static final int DEFAULT_SIZE = 1028;
+    private static final double DEFAULT_ALPHA = 0.015;
+
     private Clock clock = DEFAULT_CLOCK;
-    private Supplier<Reservoir> reservoirSupplier = ExponentiallyDecayingReservoir::new;
+    private Function<Clock, Reservoir> reservoirSupplier = (clock) -> new ExponentiallyDecayingReservoir(DEFAULT_SIZE, DEFAULT_ALPHA, toCodahaleClock(clock));
 
     public SummaryBuilder(final String name, final String help) {
       super(name, help);
@@ -123,6 +127,16 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
 
       /**
        * Create this summary with an exponentially decaying reservoir - a reservoir that gives a lower
+       * importance to older measurements with default size and alpha.
+       *
+       * @see <a href="http://dimacs.rutgers.edu/~graham/pubs/papers/fwddecay.pdf">
+       */
+      public SummaryBuilder withExponentiallyDecayingReservoir() {
+        return withExponentiallyDecayingReservoir(DEFAULT_SIZE, DEFAULT_ALPHA);
+      }
+
+      /**
+       * Create this summary with an exponentially decaying reservoir - a reservoir that gives a lower
        * importance to older measurements.
        *
        * @param size  the size of the reservoir - the number of measurements that will be saved
@@ -131,7 +145,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @see <a href="http://dimacs.rutgers.edu/~graham/pubs/papers/fwddecay.pdf">
        */
       public SummaryBuilder withExponentiallyDecayingReservoir(final int size, final double alpha) {
-        reservoirSupplier = () -> new ExponentiallyDecayingReservoir(size, alpha);
+        reservoirSupplier = (clock) -> new ExponentiallyDecayingReservoir(size, alpha, toCodahaleClock(clock));
         return SummaryBuilder.this;
       }
 
@@ -143,7 +157,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @param windowUnit the window's time units
        */
       public SummaryBuilder withSlidingTimeWindowReservoir(final int window, final TimeUnit windowUnit) {
-        reservoirSupplier = () -> new SlidingTimeWindowReservoir(window, windowUnit);
+        reservoirSupplier = (clock) -> new SlidingTimeWindowReservoir(window, windowUnit, toCodahaleClock(clock));
         return SummaryBuilder.this;
       }
 
@@ -154,7 +168,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @param size the number of measurements to save
        */
       public SummaryBuilder withSlidingWindowReservoir(final int size) {
-        reservoirSupplier = () -> new SlidingWindowReservoir(size);
+        reservoirSupplier = (clock) -> new SlidingWindowReservoir(size);
         return SummaryBuilder.this;
       }
 
@@ -167,7 +181,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @see <a href="http://www.cs.umd.edu/~samir/498/vitter.pdf">Random Sampling with a Reservoir</a>
        */
       public SummaryBuilder withUniformReservoir(final int size) {
-        reservoirSupplier = () -> new UniformReservoir(size);
+        reservoirSupplier = (clock) -> new UniformReservoir(size);
         return SummaryBuilder.this;
       }
     }
@@ -176,5 +190,28 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
     protected Summary create(final String fullName, final String help, final String[] labelNames) {
       return new Summary(fullName, help, labelNames, reservoirSupplier, clock);
     }
+  }
+
+  private static com.codahale.metrics.Clock toCodahaleClock(final Clock clock) {
+    if (clock instanceof com.codahale.metrics.Clock) {
+      return (com.codahale.metrics.Clock) clock;
+    }
+    return new CodahaleClockAdapter(clock);
+  }
+
+  private static class CodahaleClockAdapter extends com.codahale.metrics.Clock {
+
+    private final Clock clock;
+
+    CodahaleClockAdapter(final Clock clock) {
+      this.clock = clock;
+    }
+
+    @Override
+    public long getTick() {
+      return clock.getTick();
+    }
+
+
   }
 }
