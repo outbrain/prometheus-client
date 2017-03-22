@@ -7,6 +7,8 @@ public interface Clock {
 
   long getTick();
 
+  com.codahale.metrics.Clock toCodahaleClock();
+
   /**
    * A clock that uses System.nanoTime to measure its ticks.
    * Ticks are provided according the to given ticks unit, the default being nanoseconds.
@@ -33,6 +35,11 @@ public interface Clock {
     @Override
     public long getTick() {
       return (long) (System.nanoTime() * factor);
+    }
+
+    @Override
+    public com.codahale.metrics.Clock toCodahaleClock() {
+      return com.codahale.metrics.Clock.defaultClock();
     }
   }
 }
