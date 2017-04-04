@@ -20,7 +20,7 @@ import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.outbrain.swinfra.metrics.timing.Clock.DEFAULT_CLOCK;
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
@@ -51,13 +51,13 @@ import static io.prometheus.client.Collector.Type.SUMMARY;
  */
 public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
 
-  private final Function<Clock, Reservoir> reservoirSupplier;
+  private final Supplier<Reservoir> reservoirSupplier;
   private final Clock clock;
 
   private Summary(final String name,
                   final String help,
                   final String[] labelNames,
-                  final Function<Clock, Reservoir> reservoirSupplier,
+                  final Supplier<Reservoir> reservoirSupplier,
                   final Clock clock) {
     super(name, help, labelNames);
     this.reservoirSupplier = reservoirSupplier;
@@ -82,7 +82,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
   }
 
   private Histogram createHistogram() {
-    return new Histogram(reservoirSupplier.apply(clock));
+    return new Histogram(reservoirSupplier.get());
   }
 
   @Override
@@ -108,7 +108,9 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
     private static final double DEFAULT_ALPHA = 0.015;
 
     private Clock clock = DEFAULT_CLOCK;
-    private Function<Clock, Reservoir> reservoirSupplier = (clock) -> new ExponentiallyDecayingReservoir(DEFAULT_SIZE, DEFAULT_ALPHA, toCodahaleClock(clock));
+    private com.codahale.metrics.Clock codahaleClock = toCodahaleClock(DEFAULT_CLOCK);
+    private Supplier<Reservoir> reservoirSupplier = () -> new ExponentiallyDecayingReservoir(DEFAULT_SIZE, DEFAULT_ALPHA,
+                                                                                             codahaleClock);
 
     public SummaryBuilder(final String name, final String help) {
       super(name, help);
@@ -116,6 +118,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
 
     public SummaryBuilder withClock(final Clock clock) {
       this.clock = clock;
+      this.codahaleClock = toCodahaleClock(clock);
       return this;
     }
 
@@ -145,7 +148,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @see <a href="http://dimacs.rutgers.edu/~graham/pubs/papers/fwddecay.pdf">
        */
       public SummaryBuilder withExponentiallyDecayingReservoir(final int size, final double alpha) {
-        reservoirSupplier = (clock) -> new ExponentiallyDecayingReservoir(size, alpha, toCodahaleClock(clock));
+        reservoirSupplier = () -> new ExponentiallyDecayingReservoir(size, alpha, codahaleClock);
         return SummaryBuilder.this;
       }
 
@@ -157,7 +160,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @param windowUnit the window's time units
        */
       public SummaryBuilder withSlidingTimeWindowReservoir(final int window, final TimeUnit windowUnit) {
-        reservoirSupplier = (clock) -> new SlidingTimeWindowReservoir(window, windowUnit, toCodahaleClock(clock));
+        reservoirSupplier = () -> new SlidingTimeWindowReservoir(window, windowUnit, codahaleClock);
         return SummaryBuilder.this;
       }
 
@@ -168,7 +171,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @param size the number of measurements to save
        */
       public SummaryBuilder withSlidingWindowReservoir(final int size) {
-        reservoirSupplier = (clock) -> new SlidingWindowReservoir(size);
+        reservoirSupplier = () -> new SlidingWindowReservoir(size);
         return SummaryBuilder.this;
       }
 
@@ -181,7 +184,7 @@ public class Summary extends AbstractMetric<Histogram> implements TimingMetric {
        * @see <a href="http://www.cs.umd.edu/~samir/498/vitter.pdf">Random Sampling with a Reservoir</a>
        */
       public SummaryBuilder withUniformReservoir(final int size) {
-        reservoirSupplier = (clock) -> new UniformReservoir(size);
+        reservoirSupplier = () -> new UniformReservoir(size);
         return SummaryBuilder.this;
       }
     }
