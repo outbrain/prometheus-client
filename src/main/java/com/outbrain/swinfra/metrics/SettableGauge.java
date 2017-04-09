@@ -10,6 +10,7 @@ import io.prometheus.client.Collector;
 import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.DoubleSupplier;
 
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
@@ -33,7 +34,7 @@ import static java.util.Collections.singletonList;
  */
 public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
 
-  SettableGauge(String name, String help, String[] labelNames) {
+  SettableGauge(final String name, final String help, final String[] labelNames) {
     super(name, help, labelNames);
   }
 
@@ -59,7 +60,7 @@ public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
   }
 
   @Override
-  List<Sample> createSamples(MetricData<SettableDoubleSupplier> metricData, SampleCreator sampleCreator) {
+  List<Sample> createSamples(final MetricData<SettableDoubleSupplier> metricData, final SampleCreator sampleCreator) {
     return singletonList(sampleCreator.createSample(getName(),
                                                     getLabelNames(),
                                                     metricData.getLabelValues(),
@@ -67,7 +68,7 @@ public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
     ));
   }
 
-  public void set(double value, final String... labelValues) {
+  public void set(final double value, final String... labelValues) {
     metricForLabels(labelValues).set(value);
   }
 
@@ -86,15 +87,15 @@ public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
 
   static class SettableDoubleSupplier implements DoubleSupplier {
 
-    private volatile double value = 0;
+    private AtomicLong value = new AtomicLong(0);
 
     void set(final double value) {
-      this.value = value;
+      this.value.set(Double.doubleToLongBits(value));
     }
 
     @Override
     public double getAsDouble() {
-      return value;
+      return Double.longBitsToDouble(value.get());
     }
   }
 

@@ -1,14 +1,10 @@
 package com.outbrain.swinfra.metrics
 
-import com.outbrain.swinfra.metrics.Gauge.GaugeBuilder
 import com.outbrain.swinfra.metrics.samples.SampleCreator
 import com.outbrain.swinfra.metrics.samples.StaticLablesSampleCreator
-import io.prometheus.client.Collector
 import io.prometheus.client.Collector.MetricFamilySamples
 import io.prometheus.client.Collector.MetricFamilySamples.Sample
 import spock.lang.Specification
-
-import java.util.function.DoubleSupplier
 
 import static com.outbrain.swinfra.metrics.SettableGauge.SettableGaugeBuilder
 import static io.prometheus.client.Collector.Type.GAUGE
