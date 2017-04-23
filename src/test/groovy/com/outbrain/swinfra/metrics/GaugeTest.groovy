@@ -123,6 +123,16 @@ class GaugeTest extends Specification {
             gauge.getSample(sampleCreator) == metricFamilySamples
     }
 
+    def 'GaugeBuilder should throw an exception when its built without any valueSupplier'() {
+        when:
+            new GaugeBuilder(NAME, HELP)
+                    .build()
+
+        then:
+            def ex = thrown IllegalArgumentException
+            ex.message.contains("value supplier")
+    }
+
     def 'GaugeBuilder should throw an exception on null value supplier'() {
         when:
             new GaugeBuilder(NAME, HELP)

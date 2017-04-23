@@ -104,6 +104,12 @@ public class Gauge extends AbstractMetric<DoubleSupplier> {
       super(name, help);
     }
 
+    @Override
+    void validateParams() {
+      Validate.notEmpty(valueSuppliers, "At least one value supplier must be defined");
+      super.validateParams();
+    }
+
     /**
      * @see Gauge for more information on what value suppliers are and how they relate to label values
      */
