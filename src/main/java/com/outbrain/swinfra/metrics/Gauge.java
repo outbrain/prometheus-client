@@ -70,7 +70,7 @@ public class Gauge extends AbstractMetric<CachedGauge<Double>> {
 
   @Override
   ChildMetricRepo<CachedGauge<Double>> createChildMetricRepo() {
-    if (valueSuppliers.size() == 1) {
+    if (valueSuppliers.size() == 1 && getLabelNames().size() == 0) {
       final CachedGauge<Double> gauge = valueSuppliers.values().iterator().next().getMetric();
       return new UnlabeledChildRepo<>(new MetricData<>(gauge));
     } else {
@@ -102,7 +102,13 @@ public class Gauge extends AbstractMetric<CachedGauge<Double>> {
     return GAUGE;
   }
 
-  public static class GaugeBuilder extends AbstractMetricBuilder<Gauge, GaugeBuilder> {
+  public interface GaugeValueSuppliersBuilder {
+
+    GaugeValueSuppliersBuilder withValueSupplier(final DoubleSupplier valueSupplier, final String... labelValues);
+    Gauge build();
+  }
+
+  public static class GaugeBuilder extends AbstractMetricBuilder<Gauge, GaugeBuilder> implements GaugeValueSuppliersBuilder {
 
     private final Map<String[], DoubleSupplier> valueSuppliers = new HashMap<>();
 
@@ -113,7 +119,9 @@ public class Gauge extends AbstractMetric<CachedGauge<Double>> {
     /**
      * @see Gauge for more information on what value suppliers are and how they relate to label values
      */
-    public GaugeBuilder withValueSupplier(final DoubleSupplier valueSupplier, final String... labelValues) {
+    public GaugeValueSuppliersBuilder withValueSupplier(final DoubleSupplier valueSupplier, final String... labelValues) {
+      validateValueSupplier(valueSupplier);
+      validateValueSupplierLabels(labelNames.length, labelValues);
       valueSuppliers.put(labelValues, valueSupplier);
       return this;
     }
@@ -123,26 +131,16 @@ public class Gauge extends AbstractMetric<CachedGauge<Double>> {
       return new Gauge(fullName, help, labelNames, valueSuppliers);
     }
 
-    @Override
-    void validateParams() {
-      super.validateParams();
-      validateValueSuppliers();
-      validateValueSuppliersLabels();
+    private void validateValueSupplier(final DoubleSupplier valueSupplier) {
+      requireNonNull(valueSupplier, "Null value suppliers are not allowed");
     }
 
-    private void validateValueSuppliers() {
-      valueSuppliers.values()
-                    .forEach(valueSupplier -> requireNonNull(valueSupplier, "Null value suppliers are not allowed"));
-    }
-
-    private void validateValueSuppliersLabels() {
-      final int numOfLabels = labelNames.length;
-      valueSuppliers.keySet()
-                    .forEach(labelValues -> Validate.isTrue(
-                        labelValues.length == numOfLabels,
-                        "Labels %s does not contain the expected amount %s",
-                        Arrays.toString(labelValues),
-                        numOfLabels));
+    private void validateValueSupplierLabels(final int numOfLabels, final String[] labelValues) {
+      Validate.isTrue(
+              labelValues.length == numOfLabels,
+              "Labels %s does not contain the expected amount %s",
+              Arrays.toString(labelValues),
+              numOfLabels);
     }
   }
 }

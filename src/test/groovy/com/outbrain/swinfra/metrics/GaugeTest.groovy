@@ -87,9 +87,46 @@ class GaugeTest extends Specification {
                                                      expectedValue2)])
     }
 
+    def 'GaugeBuilder should provide value supplier with labels'() {
+        final double expectedValue = 239487234
+        given:
+            final String[] labelNames = ["label1", "label2"]
+            final String[] labelValues = ["val1", "val2"]
+            final List<Sample> samples = [new Sample(NAME, labelNames as List, labelValues as List, expectedValue)]
+            final MetricFamilySamples metricFamilySamples = new MetricFamilySamples(NAME, GAUGE, HELP, samples)
+        when:
+            final Gauge gauge = new GaugeBuilder(NAME, HELP)
+                    .withLabels(labelNames)
+                    .withValueSupplier({ expectedValue } as DoubleSupplier, labelValues)
+                    .build()
+
+        then:
+            gauge.getSample(sampleCreator) == metricFamilySamples
+    }
+
+    def 'GaugeBuilder should override value supplier if several suppliers passed with same values'() {
+        final double expectedValue = 239487234
+        given:
+            final String[] labelNames = ["label1", "label2"]
+            final String[] labelValues = ["val1", "val2"]
+            final List<Sample> samples = [new Sample(NAME, labelNames as List, labelValues as List, expectedValue)]
+            final MetricFamilySamples metricFamilySamples = new MetricFamilySamples(NAME, GAUGE, HELP, samples)
+        when:
+            final Gauge gauge = new GaugeBuilder(NAME, HELP)
+                    .withLabels(labelNames)
+                    .withValueSupplier({ 1 } as DoubleSupplier, labelValues)
+                    .withValueSupplier({ 2 } as DoubleSupplier, labelValues)
+                    .withValueSupplier({ expectedValue } as DoubleSupplier, labelValues)
+                    .build()
+
+        then:
+            gauge.getSample(sampleCreator) == metricFamilySamples
+    }
+
     def 'GaugeBuilder should throw an exception on null value supplier'() {
         when:
             new GaugeBuilder(NAME, HELP)
+                    .withLabels("label1", "label2")
                     .withValueSupplier(null, "val1", "val2")
                     .build()
 
