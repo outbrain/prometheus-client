@@ -1,6 +1,5 @@
 package com.outbrain.swinfra.metrics;
 
-import com.codahale.metrics.CachedGauge;
 import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
 import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
 import com.outbrain.swinfra.metrics.children.MetricData;
@@ -14,7 +13,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.function.DoubleSupplier;
 
 import static com.outbrain.swinfra.metrics.utils.LabelUtils.commaDelimitedStringToLabels;
@@ -34,9 +32,9 @@ import static java.util.Objects.requireNonNull;
  *
  * @see <a href="https://prometheus.io/docs/concepts/metric_types/#gauge">Prometheus gauge metric</a>
  */
-public class Gauge extends AbstractMetric<CachedGauge<Double>> {
+public class Gauge extends AbstractMetric<DoubleSupplier> {
 
-  private final Map<String, MetricData<CachedGauge<Double>>> valueSuppliers;
+  private final Map<String, MetricData<DoubleSupplier>> valueSuppliers;
 
   private Gauge(final String name,
                 final String help,
@@ -46,35 +44,26 @@ public class Gauge extends AbstractMetric<CachedGauge<Double>> {
     this.valueSuppliers = convertToMetricData(valueSuppliers);
   }
 
-  private CachedGauge<Double> createGauge(final DoubleSupplier valueSupplier) {
-    return new CachedGauge<Double>(10, TimeUnit.SECONDS) {
-      @Override
-      protected Double loadValue() {
-        return valueSupplier.getAsDouble();
-      }
-    };
-  }
-
   public double getValue(final String... labelValues) {
-    return metricForLabels(labelValues).getValue();
+    return metricForLabels(labelValues).getAsDouble();
   }
 
   @Override
-  List<Sample> createSamples(final MetricData<CachedGauge<Double>> metricData, final SampleCreator sampleCreator) {
+  List<Sample> createSamples(final MetricData<DoubleSupplier> metricData, final SampleCreator sampleCreator) {
     return singletonList(sampleCreator.createSample(getName(),
                                                     getLabelNames(),
                                                     metricData.getLabelValues(),
-                                                    metricData.getMetric().getValue()
+                                                    metricData.getMetric().getAsDouble()
     ));
   }
 
   @Override
-  ChildMetricRepo<CachedGauge<Double>> createChildMetricRepo() {
+  ChildMetricRepo<DoubleSupplier> createChildMetricRepo() {
     if (valueSuppliers.size() == 1 && getLabelNames().size() == 0) {
-      final CachedGauge<Double> gauge = valueSuppliers.values().iterator().next().getMetric();
+      final DoubleSupplier gauge = valueSuppliers.values().iterator().next().getMetric();
       return new UnlabeledChildRepo<>(new MetricData<>(gauge));
     } else {
-      final ChildMetricRepo<CachedGauge<Double>> result = new LabeledChildrenRepo<>(valueSuppliers::get);
+      final ChildMetricRepo<DoubleSupplier> result = new LabeledChildrenRepo<>(valueSuppliers::get);
       valueSuppliers.keySet().forEach(metricLabels -> {
         final String[] labelValues = commaDelimitedStringToLabels(metricLabels);
         result.metricForLabels(labelValues);
@@ -83,18 +72,17 @@ public class Gauge extends AbstractMetric<CachedGauge<Double>> {
     }
   }
 
-  private Map<String, MetricData<CachedGauge<Double>>> convertToMetricData(final Map<String[], DoubleSupplier> valueSuppliers) {
-    final Map<String, MetricData<CachedGauge<Double>>> metricData = new HashMap<>(valueSuppliers.size());
+  private Map<String, MetricData<DoubleSupplier>> convertToMetricData(final Map<String[], DoubleSupplier> valueSuppliers) {
+    final Map<String, MetricData<DoubleSupplier>> metricData = new HashMap<>(valueSuppliers.size());
     valueSuppliers.forEach((labelValues, valueSupplier) -> metricData.put(
                       labelsToCommaDelimitedString(labelValues),
                       toMetricData(valueSupplier, labelValues)));
     return metricData;
   }
 
-  private MetricData<CachedGauge<Double>> toMetricData(final DoubleSupplier valueSupplier,
+  private MetricData<DoubleSupplier> toMetricData(final DoubleSupplier valueSupplier,
                                                        final String[] labelValues) {
-    final CachedGauge<Double> gauge = createGauge(valueSupplier);
-    return new MetricData<>(gauge, labelValues);
+    return new MetricData<>(valueSupplier, labelValues);
   }
 
   @Override
