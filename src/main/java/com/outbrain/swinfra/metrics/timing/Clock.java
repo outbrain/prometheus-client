@@ -7,6 +7,8 @@ public interface Clock {
 
   long getTick();
 
+  long getTick(TimeUnit timeunit);
+
   /**
    * A clock that uses System.nanoTime to measure its ticks.
    * Ticks are provided according the to given ticks unit, the default being nanoseconds.
@@ -35,5 +37,9 @@ public interface Clock {
       return (long) (System.nanoTime() * factor);
     }
 
+    @Override
+    public long getTick(final TimeUnit ticksUnit) {
+      return ticksUnit.convert(System.nanoTime(), TimeUnit.NANOSECONDS);
+    }
   }
 }
