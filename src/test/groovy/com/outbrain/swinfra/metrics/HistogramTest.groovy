@@ -1,5 +1,7 @@
 package com.outbrain.swinfra.metrics
 
+import com.outbrain.swinfra.metrics.children.MetricData
+import com.outbrain.swinfra.metrics.data.HistogramData
 import com.outbrain.swinfra.metrics.data.MetricDataConsumer
 import com.outbrain.swinfra.metrics.timing.Timer
 import spock.lang.Specification
@@ -13,10 +15,10 @@ import static com.outbrain.swinfra.metrics.utils.MetricType.HISTOGRAM
 
 class HistogramTest extends Specification {
 
-    private static final String NAME = "myHisto"
-    private static final String HELP = "HELP"
+    private static final String NAME = 'myHisto'
+    private static final String HELP = 'HELP'
 
-    private final Consumer<Buckets> consumer = Mock(Consumer)
+    private final Consumer<MetricData<Buckets>> consumer = Mock(Consumer)
     private final MetricDataConsumer metricDataConsumer = Mock(MetricDataConsumer)
 
     def 'Histogram should return the correct type'() {
@@ -33,7 +35,7 @@ class HistogramTest extends Specification {
         when:
             histogram.forEachChild(consumer)
         then:
-            1 * consumer.accept({ it.metric.values.sum == 0 && it.labelValues == [] })
+            1 * consumer.accept({ it.metric.values.sum == 0 && it.labelValues == [] } as MetricData<Buckets>)
             0 * consumer.accept(_)
     }
 
@@ -53,8 +55,8 @@ class HistogramTest extends Specification {
                 it.count == 6 &&
                 it.sum ==  1 + 5 + 5 + 50 + 50 + 150 &&
                 it.buckets == [1, 3, 5, 6]
-            })
-        0 * metricDataConsumer._
+            } as HistogramData)
+            0 * metricDataConsumer._
     }
 
     def 'Histogram with defined buckets and labels should return correct samples with correct lables'() {
@@ -80,18 +82,43 @@ class HistogramTest extends Specification {
                 it.count == 6 &&
                         it.sum ==  1 + 5 + 5 + 50 + 50 + 150 &&
                         it.buckets == [1, 3, 5, 6]
-            })
+            } as HistogramData)
             1 * metricDataConsumer.consumeHistogram(histogram, ['val2'], {
                 it.count == 6 &&
                         it.sum ==  1 + 5 + 5 + 50 + 50 + 150 &&
                         it.buckets == [1, 3, 5, 6]
-            })
+            } as HistogramData)
             1 * metricDataConsumer.consumeHistogram(histogram, ['val3'], {
                 it.count == 6 &&
                         it.sum ==  1 + 5 + 5 + 50 + 50 + 150 &&
                         it.buckets == [1, 3, 5, 6]
-            })
+            } as HistogramData)
             0 * metricDataConsumer._
+    }
+
+    def 'samples should contain non cummulative buckets upon nonCommulativeBuckets definition'() {
+        given:
+            final Histogram histogram = new HistogramBuilder(NAME, HELP)
+                    .withBuckets(1, 10, 100)
+                    .nonCummulativeBuckets()
+                    .build()
+
+            histogram.observe(1)
+            histogram.observe(5)
+            histogram.observe(5)
+            histogram.observe(50)
+            histogram.observe(50)
+            histogram.observe(150)
+
+        when:
+            histogram.forEachMetricData(metricDataConsumer)
+
+        then:
+            1 * metricDataConsumer.consumeHistogram(histogram, [], {
+                it.count == 6 &&
+                        it.sum ==  1 + 5 + 5 + 50 + 50 + 150 &&
+                        it.buckets == [1, 2, 2, 1]
+            } as HistogramData)
     }
 
     @Unroll
@@ -119,7 +146,7 @@ class HistogramTest extends Specification {
             1 * consumer.accept({
                     it.metric.values.sum == 0.0 &&
                     it.metric.values.buckets == [0, 0] &&
-                    it.metric.values.bucketUpperBounds == [0.5d, Double.POSITIVE_INFINITY] })
+                    it.metric.values.bucketUpperBounds == [0.5d, Double.POSITIVE_INFINITY] } as MetricData<Buckets>)
             0 * consumer.accept(_)
     }
 
@@ -132,7 +159,7 @@ class HistogramTest extends Specification {
             1 * consumer.accept({
                 it.metric.values.sum == 0.0 &&
                         it.metric.values.buckets == [0, 0, 0, 0, 0] &&
-                        it.metric.values.bucketUpperBounds == [0.5d, 1.5d, 2.5d, 3.5d, Double.POSITIVE_INFINITY] })
+                        it.metric.values.bucketUpperBounds == [0.5d, 1.5d, 2.5d, 3.5d, Double.POSITIVE_INFINITY] } as MetricData<Buckets>)
             0 * consumer.accept(_)
     }
 
@@ -152,7 +179,7 @@ class HistogramTest extends Specification {
             1 * consumer.accept({
                 it.metric.values.sum == 6.0 &&
                         it.metric.values.buckets == [1, 2, 3] &&
-                        it.metric.values.bucketUpperBounds == [1.5d, 2.5d, Double.POSITIVE_INFINITY] })
+                        it.metric.values.bucketUpperBounds == [1.5d, 2.5d, Double.POSITIVE_INFINITY] } as MetricData<Buckets>)
             0 * consumer.accept(_)
     }
 

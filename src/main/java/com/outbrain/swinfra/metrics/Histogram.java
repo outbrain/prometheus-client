@@ -20,6 +20,7 @@ import java.util.stream.DoubleStream;
 
 import static com.outbrain.swinfra.metrics.timing.Clock.DEFAULT_CLOCK;
 import static com.outbrain.swinfra.metrics.utils.MetricType.HISTOGRAM;
+import static java.util.Arrays.stream;
 
 //todo document the fact that I favored throughput over consistency
 
@@ -55,23 +56,26 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
 
   private final double[] buckets;
   private final Clock clock;
+  private final boolean cummulativeBuckets;
 
   private Histogram(final String name,
                     final String help,
                     final String[] labelNames,
                     final double[] buckets,
-                    final Clock clock) {
+                    final Clock clock,
+                    final boolean cummulativeBuckets) {
     super(name, help, labelNames);
     this.buckets = buckets;
     this.clock = clock;
+    this.cummulativeBuckets = cummulativeBuckets;
   }
 
   @Override
   ChildMetricRepo<Buckets> createChildMetricRepo() {
     if (getLabelNames().isEmpty()) {
-      return new UnlabeledChildRepo<>(new MetricData<>(new Buckets(buckets)));
+      return new UnlabeledChildRepo<>(new MetricData<>(new Buckets(cummulativeBuckets, buckets)));
     } else {
-      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(new Buckets(buckets), labelValues));
+      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(new Buckets(cummulativeBuckets, buckets), labelValues));
     }
   }
 
@@ -114,11 +118,13 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
    */
   static class Buckets {
 
-    final double[] bucketBounds;
-    final LongAdder[] buckets;
-    final DoubleAdder sum = new DoubleAdder();
+    private final boolean cummulativeBuckets;
+    private final double[] bucketBounds;
+    private final LongAdder[] buckets;
+    private final DoubleAdder sum = new DoubleAdder();
 
-    Buckets(final double... bucketBounds) {
+    Buckets(final boolean cummulativeBuckets, final double... bucketBounds) {
+      this.cummulativeBuckets = cummulativeBuckets;
       this.bucketBounds = Arrays.copyOf(bucketBounds, bucketBounds.length + 1);
       this.bucketBounds[this.bucketBounds.length - 1] = Double.POSITIVE_INFINITY;
       this.buckets = new LongAdder[this.bucketBounds.length];
@@ -138,32 +144,57 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
     }
 
     BucketValues getValues() {
-      final long[] cummulativeBuckets = new long[this.buckets.length];
-      long accumulator = 0;
-
       //Saving a snapshot of the sum so it will not be affected by values added while the buckets are calculated
       final double sumSnapshot = sum.sum();
+      final long[] buckets;
+
+      if (cummulativeBuckets) {
+        buckets = calculateCummulativeBuckets();
+      } else {
+        buckets = calculateNonCummulativeBuckets();
+      }
+
+      return new BucketValues(sumSnapshot, buckets, bucketBounds, cummulativeBuckets);
+    }
+
+    private long[] calculateCummulativeBuckets() {
+      final long[] cummulativeBuckets = new long[this.buckets.length];
+      long accumulator = 0;
 
       for (int i = 0; i < buckets.length; i++) {
         accumulator += buckets[i].sum();
         cummulativeBuckets[i] = accumulator;
       }
 
-      return new BucketValues(sumSnapshot, cummulativeBuckets, bucketBounds);
+      return cummulativeBuckets;
+    }
+
+    private long[] calculateNonCummulativeBuckets() {
+      final long[] nonCummulativeBuckets = new long[this.buckets.length];
+
+      for (int i = 0; i < buckets.length; i++) {
+        nonCummulativeBuckets[i] = buckets[i].sum();
+      }
+
+      return nonCummulativeBuckets;
     }
   }
 
   private static class BucketValues implements HistogramData {
+
     private final double sum;
     private final long[] buckets;
     private final double[] bucketBounds;
+    private boolean cummulativeBuckets;
 
     BucketValues(final double sum,
                  final long[] buckets,
-                 final double[] bucketBounds) {
+                 final double[] bucketBounds,
+                 final boolean cummulativeBuckets) {
       this.sum = sum;
       this.buckets = buckets;
       this.bucketBounds = bucketBounds;
+      this.cummulativeBuckets = cummulativeBuckets;
     }
 
     @Override
@@ -173,7 +204,7 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
 
     @Override
     public long getCount() {
-      return buckets[buckets.length - 1];
+      return cummulativeBuckets ? buckets[buckets.length - 1] : stream(buckets).sum();
     }
 
     @Override
@@ -205,6 +236,7 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
 
     private double[] buckets = new double[]{.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10};
     private Clock clock = DEFAULT_CLOCK;
+    private boolean cummulativeBuckets = true;
 
     public HistogramBuilder(final String name, final String help) {
       super(name, help);
@@ -214,7 +246,7 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
     void validateParams() {
       super.validateParams();
       //Validate buckets all contain finite Double values
-      Arrays.stream(buckets).forEach(this::validateBucket);
+      stream(buckets).forEach(this::validateBucket);
     }
 
     private void validateBucket(final double bucket) {
@@ -266,9 +298,14 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
       return this;
     }
 
+    public HistogramBuilder nonCummulativeBuckets() {
+      this.cummulativeBuckets = false;
+      return this;
+    }
+
     @Override
     protected Histogram create(final String fullName, final String help, final String[] labelNames) {
-      return new Histogram(fullName, help, labelNames, buckets, clock);
+      return new Histogram(fullName, help, labelNames, buckets, clock, cummulativeBuckets);
     }
 
   }
