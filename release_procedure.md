@@ -1,4 +1,4 @@
-#Release Proecdure
+# Release Proecdure
 
 1. ***gradle clean build*** - Build locally and make sure all tests run successfully.
 2. ***gradle release -Prelease.useAutomaticVersion=true*** - Prepare the release - includes creating a commit with a non-SNAPSHOT
