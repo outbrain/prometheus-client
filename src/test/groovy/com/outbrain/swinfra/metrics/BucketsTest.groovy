@@ -10,7 +10,7 @@ class BucketsTest extends Specification {
 
     def 'Buckets should contain a single bucket when initiated with no buckets'() {
         given:
-            final Buckets buckets = new Buckets()
+            final Buckets buckets = new Buckets(true)
 
         expect:
             final BucketValues values = buckets.getValues()
@@ -21,7 +21,7 @@ class BucketsTest extends Specification {
 
     def 'Buckets should contain the correct number of buckets when initiated with several buckets'() {
         given:
-            final Buckets buckets = new Buckets(1, 10, 100)
+            final Buckets buckets = new Buckets(true, 1, 10, 100)
 
         expect:
             final BucketValues values = buckets.getValues()
@@ -36,7 +36,7 @@ class BucketsTest extends Specification {
     @Unroll
     def 'Buckets should contain the correct sum and number of events after observations #observations'() {
         given:
-            final Buckets buckets = new Buckets()
+            final Buckets buckets = new Buckets(true)
 
         when:
             observations.each {buckets.add(it)}
@@ -55,7 +55,7 @@ class BucketsTest extends Specification {
     @Unroll
     def 'Buckets should contain the correct sum and number of events after observations #observations and buckets #bucketEvents'() {
         given:
-            final Buckets buckets = new Buckets(1, 10, 100)
+            final Buckets buckets = new Buckets(true, 1, 10, 100)
 
         when:
             observations.each {buckets.add(it)}
