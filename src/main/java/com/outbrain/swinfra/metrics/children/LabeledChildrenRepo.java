@@ -29,8 +29,15 @@ public class LabeledChildrenRepo<T> implements ChildMetricRepo<T> {
 
   @Override
   public T metricForLabels(List<String> labelValues) {
-    final MetricData<T> data = children.get(labelValues);
-    return (data == null ? children.computeIfAbsent(labelValues, mappingFunction) : data).getMetric();
+    final MetricData<T> metricData = children.get(labelValues);
+    // We use get and fallback to computeIfAbsent to eliminate contention
+    // in case the key is present.
+    // See https://bugs.openjdk.java.net/browse/JDK-8161372 for details.
+    if (metricData == null) {
+      return children.computeIfAbsent(labelValues, mappingFunction).getMetric();
+    } else {
+      return metricData.getMetric();
+    }
   }
 
   @Override
