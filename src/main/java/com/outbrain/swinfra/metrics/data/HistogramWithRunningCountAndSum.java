@@ -13,6 +13,7 @@ public class HistogramWithRunningCountAndSum {
   private Histogram nonNegativeHistogramToRecycle;
   private volatile Recorder negativeRecorder;
   private Histogram negativeHistogramToRecycle;
+  private volatile Histogram negativeAndNonNegativeSum;
   private long count;
   private long sum;
   private final Object negativeLock = new Object();
@@ -28,6 +29,7 @@ public class HistogramWithRunningCountAndSum {
       if (negativeRecorder == null) {
         synchronized (negativeLock) {
           if (negativeRecorder == null) {
+            negativeAndNonNegativeSum = new Histogram(numberOfSignificantValueDigits);
             negativeRecorder = new Recorder(numberOfSignificantValueDigits);
           }
         }
@@ -45,10 +47,16 @@ public class HistogramWithRunningCountAndSum {
       final Histogram histogram;
       if (negativeRecorder != null) {
         negativeHistogramToRecycle = negativeRecorder.getIntervalHistogram(negativeHistogramToRecycle);
-        offset = negativeHistogramToRecycle.getMaxValue();
-        histogram = new Histogram(numberOfSignificantValueDigits);
-        negativeHistogramToRecycle.recordedValues().forEach(x -> histogram.recordValueWithCount(offset - x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
-        nonNegativeHistogramToRecycle.recordedValues().forEach(x -> histogram.recordValueWithCount(offset + x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
+        if (negativeHistogramToRecycle.getTotalCount() == 0) {
+          offset = 0;
+          histogram = nonNegativeHistogramToRecycle;
+        } else {
+          offset = negativeHistogramToRecycle.getMaxValue();
+          histogram = negativeAndNonNegativeSum;
+          histogram.reset();
+          negativeHistogramToRecycle.recordedValues().forEach(x -> histogram.recordValueWithCount(offset - x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
+          nonNegativeHistogramToRecycle.recordedValues().forEach(x -> histogram.recordValueWithCount(offset + x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
+        }
       } else {
         offset = 0;
         histogram = nonNegativeHistogramToRecycle;
