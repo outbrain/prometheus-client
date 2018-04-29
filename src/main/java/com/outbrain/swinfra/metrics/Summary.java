@@ -68,7 +68,7 @@ public class Summary extends AbstractMetric<HistogramWithRunningCountAndSum> imp
   }
 
   private HistogramWithRunningCountAndSum createHistogram() {
-    return new HistogramWithRunningCountAndSum(new Recorder(Long.MAX_VALUE, numberOfSignificantValueDigits));
+    return new HistogramWithRunningCountAndSum(numberOfSignificantValueDigits);
   }
 
   @Override

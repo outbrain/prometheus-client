@@ -76,13 +76,13 @@ class SummaryTest extends Specification {
             withNumberOfSignificantValueDigits(3).
                     withLabels(labelNames as String[]).
                     build()
-            1.upto(1000, {
+        (-500).upto(1499, {
                 clock.tick = it - 1
                 summary.observe(it, labelValues1 as String[])
                 summary.observe(it, labelValues2 as String[])
             })
             summary.forEachMetricData(metricDataConsumer)
-            1.upto(1000, {
+        (-500).upto(1499, {
                 clock.tick = it - 1
                 summary.observe(it, labelValues1 as String[])
                 summary.observe(it, labelValues2 as String[])
@@ -92,25 +92,25 @@ class SummaryTest extends Specification {
         then:
             1 * metricDataConsumer.consumeSummary(summary, labelValues1,
                     {
-                        it.count == 2000 &&
-                                it.sum == 2*(1..1000).sum() &&
-                                it.median == 500 &&
-                                it.get75thPercentile() == 750 &&
-                                it.get95thPercentile() == 950 &&
-                                it.get98thPercentile() == 980 &&
-                                it.get99thPercentile() == 990 &&
-                                it.get999thPercentile() == 999
+                        it.count == 4000 &&
+                                it.sum == 2*(-500..1499).sum() &&
+                                it.median == 499 &&
+                                it.get75thPercentile() == 999 &&
+                                it.get95thPercentile() == 1399 &&
+                                it.get98thPercentile() == 1459 &&
+                                it.get99thPercentile() == 1479 &&
+                                it.get999thPercentile() == 1497
                     })
             1 * metricDataConsumer.consumeSummary(summary, labelValues2,
                     {
-                        it.count == 2000 &&
-                                it.sum == 2*(1..1000).sum() &&
-                                it.median == 500 &&
-                                it.get75thPercentile() == 750 &&
-                                it.get95thPercentile() == 950 &&
-                                it.get98thPercentile() == 980 &&
-                                it.get99thPercentile() == 990 &&
-                                it.get999thPercentile() == 999
+                        it.count == 4000 &&
+                                it.sum == 2*(-500..1499).sum() &&
+                                it.median == 499 &&
+                                it.get75thPercentile() == 999 &&
+                                it.get95thPercentile() == 1399 &&
+                                it.get98thPercentile() == 1459 &&
+                                it.get99thPercentile() == 1479 &&
+                                it.get999thPercentile() == 1497
                     })
             0 * metricDataConsumer._
     }
