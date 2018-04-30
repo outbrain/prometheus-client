@@ -13,7 +13,7 @@ public class HistogramWithRunningCountAndSum {
   private Histogram nonNegativeHistogramToRecycle;
   private volatile Recorder negativeRecorder;
   private Histogram negativeHistogramToRecycle;
-  private volatile Histogram negativeAndNonNegativeSum;
+  private Histogram negativeAndNonNegativeSum;
   private long count;
   private long sum;
   private final Object negativeLock = new Object();
