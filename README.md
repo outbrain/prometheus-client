@@ -31,7 +31,7 @@ environment. Thread-safety is key and the performance impact of using metrics mu
 
 When reviewing the official Prometheus client we discovered a several *synchronized* blocks that in the *Summary* and *Gauge*
 metric types. In order to avoid the [contention](http://www.ibm.com/developerworks/library/j-threads2/) we decided to write our own client, 
-wrapping dropwizard-metrics internally, with a custom Bucket-based 
+wrapping HdrHistogram and dropwizard-metrics internally, with a custom Bucket-based 
 [Histogram](https://github.com/outbrain/prometheus-client/blob/master/src/main/java/com/outbrain/swinfra/metrics/Histogram.java) implementation.
 
 ## Getting Started
@@ -169,17 +169,16 @@ registry.getOrRegister(new GaugeBuilder("name", "help").withLabels("label1")
 ```
 
 ### Summary - Advanced
-The *Summary* metric support the different types of reservoirs that DropWizard supports. They can be used like so:
+*Summary* supports different precisions.
 
-The default reservoir is the exponentially decaying reservoir.
 ```java
-Summary summary = registry.getOrRegister(new SummaryBuilder("name", "help").withReservoir()
-                                                 .withUniformReservoir(100)
-                                                 .build());
+Summary summary = registry.getOrRegister(new SummaryBuilder("name", "help")
+                                              .withNumberOfSignificantValueDigits(3)
+                                              .build());
 ```
 
 ### Histogram - Advanced
-The *Histogram* can be configured with custom buckets or with equal width buckets at a given range.
+*Histogram* can be configured with custom buckets or with equal width buckets at a given range.
 ```java
 //Custom buckets
 Histogram histo = registry.getOrRegister(new HistogramBuilder("name", "help")
@@ -193,7 +192,7 @@ Histogram histo = registry.getOrRegister(new HistogramBuilder("name", "help").wi
 ```
 
 ### Timer - Advanced
-The *Timer* supports custom clocks, with the default being the system clock which measures intervals
+*Timer* supports custom clocks, with the default being the system clock which measures intervals
 according to *System.nanoTime()*.
 
 This example shows a timer over a *Histogram* metric, but it's also applicable to the *Summary* metric
