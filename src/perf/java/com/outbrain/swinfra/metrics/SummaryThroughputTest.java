@@ -55,12 +55,20 @@ public class SummaryThroughputTest {
   //todo validate end result
   @State(Scope.Benchmark)
   public static class SummaryState {
-    private Summary summary = new SummaryBuilder("name", "help").build();
+    private Summary summary;
+    public SummaryState() {
+      this.summary = new SummaryBuilder("name", "help").build();
+      summary.observe(Long.MAX_VALUE);
+    }
   }
 
   @State(Scope.Benchmark)
   public static class LabeledSummaryState {
-    private Summary summary = new SummaryBuilder("name", "help").withLabels("label1", "label2").build();
+    private Summary summary;
+    public LabeledSummaryState() {
+      this.summary = new SummaryBuilder("name", "help").withLabels("label1", "label2").build();
+      summary.observe(Long.MAX_VALUE, "x", "y");
+    }
   }
 
   @Benchmark

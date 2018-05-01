@@ -26,57 +26,74 @@ public class HistogramWithRunningCountAndSum {
 
   public void recordValue(final long value) {
     if (value < 0) {
-      if (negativeRecorder == null) {
-        synchronized (negativeLock) {
-          if (negativeRecorder == null) {
-            negativeAndNonNegativeSum = new Histogram(numberOfSignificantValueDigits);
-            negativeRecorder = new Recorder(numberOfSignificantValueDigits);
-          }
-        }
-      }
-      negativeRecorder.recordValue(-value);
+      // HdrHistogram does not support recording negative values, so we flip the sign.
+      lazilyInitializedNegativeRecorder().recordValue(-value);
     } else {
       nonNegativeRecorder.recordValue(value);
     }
   }
 
-  public SummaryData summary() {
-    synchronized (summaryLock) {
-      nonNegativeHistogramToRecycle = nonNegativeRecorder.getIntervalHistogram(nonNegativeHistogramToRecycle);
-      final long offset;
-      final Histogram histogram;
-      if (negativeRecorder != null) {
-        negativeHistogramToRecycle = negativeRecorder.getIntervalHistogram(negativeHistogramToRecycle);
-        if (negativeHistogramToRecycle.getTotalCount() == 0) {
-          offset = 0;
-          histogram = nonNegativeHistogramToRecycle;
-        } else {
-          offset = negativeHistogramToRecycle.getMaxValue();
-          histogram = negativeAndNonNegativeSum;
-          histogram.reset();
-          negativeHistogramToRecycle.recordedValues().forEach(x -> histogram.recordValueWithCount(offset - x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
-          nonNegativeHistogramToRecycle.recordedValues().forEach(x -> histogram.recordValueWithCount(offset + x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
+  private Recorder lazilyInitializedNegativeRecorder() {
+    // Lazily initialize lazilyInitializedNegativeRecorder to avoid allocating the needed memory upfront.
+    if (negativeRecorder == null) {
+      synchronized (negativeLock) {
+        if (negativeRecorder == null) {
+          negativeAndNonNegativeSum = new Histogram(numberOfSignificantValueDigits);
+          negativeRecorder = new Recorder(numberOfSignificantValueDigits);
         }
-      } else {
-        offset = 0;
-        histogram = nonNegativeHistogramToRecycle;
       }
-      updateSumAndCount(histogram, offset);
+    }
+    return negativeRecorder;
+  }
 
-      return new HdrSummaryData(histogram, count, sum, offset);
+  public SummaryData summary() {
+    // Read the contents of the histograms under lock to prevent another thread from swapping the
+    // recyclable histograms and making them active while we extract stats from them.
+    synchronized (summaryLock) {
+      // The Java Doc explaining the usage pattern involving getIntervalHistogram is explained here:
+      // https://github.com/HdrHistogram/HdrHistogram/blob/34ac23d63b496d37eab966502153789153b3e492/src/main/java/org/HdrHistogram/Recorder.java#L26
+      nonNegativeHistogramToRecycle = nonNegativeRecorder.getIntervalHistogram(nonNegativeHistogramToRecycle);
+
+      if (negativeRecorder == null) {
+        return summary(0, nonNegativeHistogramToRecycle);
+      }
+
+      negativeHistogramToRecycle = negativeRecorder.getIntervalHistogram(negativeHistogramToRecycle);
+      if (negativeHistogramToRecycle.getTotalCount() == 0) {
+        return summary(0, nonNegativeHistogramToRecycle);
+      }
+
+      // We need to sum the negative and non negative histograms.
+      // For that we first need to put their values on the same scale.
+      // As we recorded -v for each recorded negative value v, we need to flip the sign again to get (-(-v)) = v.
+      // Since we cannot record negative values,
+      // we add offset = negativeHistogramToRecycle.getMaxValue() to v.
+      // That means we also have to add offset to the non negative histogram.
+      // We later correct the sum by subtracting (offset * #{recorded values})
+      // and correct the percentiles by subtracting offset.
+      final long offset = negativeHistogramToRecycle.getMaxValue();
+      negativeAndNonNegativeSum.reset();
+      negativeHistogramToRecycle.recordedValues().forEach(x -> negativeAndNonNegativeSum.recordValueWithCount(offset - x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
+      nonNegativeHistogramToRecycle.recordedValues().forEach(x -> negativeAndNonNegativeSum.recordValueWithCount(offset + x.getValueIteratedTo(), x.getCountAtValueIteratedTo()));
+      return summary(offset, negativeAndNonNegativeSum);
     }
   }
 
-  private void updateSumAndCount(final Histogram histogram, final long offset) {
+  private SummaryData summary(final long offset, final Histogram histogram) {
+    assert Thread.holdsLock(summaryLock);
+
     count += histogram.getTotalCount();
 
     HistogramIterationValue lastRecordedValue = null;
     for (final HistogramIterationValue x : histogram.recordedValues()) {
       lastRecordedValue = x;
     }
+
     if (lastRecordedValue != null) {
       sum += lastRecordedValue.getTotalValueToThisValue() - offset * histogram.getTotalCount();
     }
+
+    return new HdrSummaryData(histogram, count, sum, offset);
   }
 
   private static class HdrSummaryData implements SummaryData {
