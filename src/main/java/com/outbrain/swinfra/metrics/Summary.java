@@ -1,16 +1,11 @@
 package com.outbrain.swinfra.metrics;
 
-import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
-import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
-import com.outbrain.swinfra.metrics.children.MetricData;
-import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
 import com.outbrain.swinfra.metrics.data.HistogramWithRunningCountAndSum;
 import com.outbrain.swinfra.metrics.data.MetricDataConsumer;
 import com.outbrain.swinfra.metrics.timing.Clock;
 import com.outbrain.swinfra.metrics.timing.Timer;
 import com.outbrain.swinfra.metrics.timing.TimingMetric;
 import com.outbrain.swinfra.metrics.utils.MetricType;
-import org.HdrHistogram.Recorder;
 
 import static com.outbrain.swinfra.metrics.timing.Clock.DEFAULT_CLOCK;
 import static com.outbrain.swinfra.metrics.utils.MetricType.SUMMARY;
@@ -59,15 +54,7 @@ public class Summary extends AbstractMetric<HistogramWithRunningCountAndSum> imp
   }
 
   @Override
-  ChildMetricRepo<HistogramWithRunningCountAndSum> createChildMetricRepo() {
-    if (getLabelNames().isEmpty()) {
-      return new UnlabeledChildRepo<>(new MetricData<>(createHistogram()));
-    } else {
-      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(createHistogram(), labelValues));
-    }
-  }
-
-  private HistogramWithRunningCountAndSum createHistogram() {
+  HistogramWithRunningCountAndSum createMetric() {
     return new HistogramWithRunningCountAndSum(numberOfSignificantValueDigits);
   }
 

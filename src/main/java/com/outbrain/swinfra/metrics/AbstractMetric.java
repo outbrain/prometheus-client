@@ -1,7 +1,9 @@
 package com.outbrain.swinfra.metrics;
 
 import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
+import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
 import com.outbrain.swinfra.metrics.children.MetricData;
+import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Arrays;
@@ -28,7 +30,17 @@ abstract class AbstractMetric<T> implements Metric {
     this.labelNames = Arrays.asList(labelNames);
   }
 
-  abstract ChildMetricRepo<T> createChildMetricRepo();
+  ChildMetricRepo<T> createChildMetricRepo() {
+    if (getLabelNames().isEmpty()) {
+      return new UnlabeledChildRepo<>(new MetricData<>(createMetric()));
+    } else {
+      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(createMetric(), labelValues));
+    }
+  }
+
+  T createMetric() {
+    throw new UnsupportedOperationException();
+  }
 
   @Override
   public String getName() {

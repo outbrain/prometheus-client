@@ -71,12 +71,8 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
   }
 
   @Override
-  ChildMetricRepo<Buckets> createChildMetricRepo() {
-    if (getLabelNames().isEmpty()) {
-      return new UnlabeledChildRepo<>(new MetricData<>(new Buckets(cummulativeBuckets, buckets)));
-    } else {
-      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(new Buckets(cummulativeBuckets, buckets), labelValues));
-    }
+  Buckets createMetric() {
+    return new Buckets(cummulativeBuckets, buckets);
   }
 
   @Override

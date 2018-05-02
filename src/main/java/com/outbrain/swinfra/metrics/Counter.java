@@ -40,12 +40,8 @@ public class Counter extends AbstractMetric<LongAdder> {
   }
 
   @Override
-  ChildMetricRepo<LongAdder> createChildMetricRepo() {
-    if (getLabelNames().isEmpty()) {
-      return new UnlabeledChildRepo<>(new MetricData<>(new LongAdder()));
-    } else {
-      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(new LongAdder(), labelValues));
-    }
+  LongAdder createMetric() {
+    return new LongAdder();
   }
 
   @Override

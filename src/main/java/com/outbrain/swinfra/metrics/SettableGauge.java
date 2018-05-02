@@ -33,14 +33,9 @@ public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
   }
 
   @Override
-  ChildMetricRepo<SettableDoubleSupplier> createChildMetricRepo() {
-    if (getLabelNames().isEmpty()) {
-      return new UnlabeledChildRepo<>(new MetricData<>(new SettableDoubleSupplier()));
-    } else {
-      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(new SettableDoubleSupplier(), labelValues));
-    }
+  SettableDoubleSupplier createMetric() {
+    return new SettableDoubleSupplier();
   }
-
 
   @Override
   public MetricType getType() {
