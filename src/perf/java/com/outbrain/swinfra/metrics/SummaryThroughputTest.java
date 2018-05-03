@@ -11,14 +11,14 @@ import org.openjdk.jmh.annotations.Threads;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-@Threads(Threads.MAX)
-@BenchmarkMode(Mode.Throughput)
-@OutputTimeUnit(TimeUnit.MILLISECONDS)
+@Threads(1)
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class SummaryThroughputTest {
 
-  private static final int NUM_OF_ITERATIONS = 10_000;
   private static final String[] LABEL_NAMES = {"label1", "label2"};
   private static final List<String[]> LABEL_VALUES = Arrays.asList(new String[]{"val1", "val2"},
           new String[]{"val3", "val4"},
@@ -73,30 +73,28 @@ public class SummaryThroughputTest {
 
   @Benchmark
   public void measurePrometheusSummaryThroughput(final PrometheusSummaryState summary) {
-    for (int i = 0; i < NUM_OF_ITERATIONS; i++) {
-      summary.summary.observe(i);
-    }
+    summary.summary.observe(sample());
   }
 
   @Benchmark
   public void measurePrometheusSummaryThroughputWithLabels(final LabeledPrometheusSummaryState summary) {
-    for (int i = 0; i < NUM_OF_ITERATIONS; i++) {
-      summary.summary.labels(LABEL_VALUES.get(i % LABEL_VALUES.size())).observe(i);
-    }
+    final int sample = sample();
+    summary.summary.labels(LABEL_VALUES.get(sample % LABEL_VALUES.size())).observe(sample);
   }
 
   @Benchmark
   public void measureSummaryThroughput(final SummaryState summary) {
-    for (int i = 0; i < NUM_OF_ITERATIONS; i++) {
-      summary.summary.observe(i);
-    }
+    summary.summary.observe(sample());
   }
 
   @Benchmark
   public void measureSummaryThroughputWithLabels(final LabeledSummaryState summary) {
-    for (int i = 0; i < NUM_OF_ITERATIONS; i++) {
-      summary.summary.observe(i, LABEL_VALUES.get(i % LABEL_VALUES.size()));
-    }
+    final int sample = sample();
+    summary.summary.observe(sample, LABEL_VALUES.get(sample % LABEL_VALUES.size()));
+  }
+
+  private int sample() {
+    return ThreadLocalRandom.current().nextInt(1000);
   }
 
 }

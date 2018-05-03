@@ -1,5 +1,6 @@
 package com.outbrain.swinfra.metrics.children;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -14,27 +15,27 @@ import static java.util.Arrays.asList;
  */
 public class LabeledChildrenRepo<T> implements ChildMetricRepo<T> {
 
-  private final ConcurrentMap<List<String>, MetricData<T>> children = new ConcurrentHashMap<>();
-  private final Function<List<String>, MetricData<T>> mappingFunction;
+  private final ConcurrentMap<StringsKey, MetricData<T>> children = new ConcurrentHashMap<>();
+  private final Function<StringsKey, MetricData<T>> mappingFunction;
 
   public LabeledChildrenRepo(final Function<List<String>, MetricData<T>> mappingFunction) {
-    this.mappingFunction = mappingFunction;
+    this.mappingFunction = key -> mappingFunction.apply(asList(key.labelValues));
+  }
+
+  @Override
+  public T metricForLabels(final List<String> labelValues) {
+    return metricForLabels(labelValues.toArray(new String[0]));
   }
 
   @Override
   public T metricForLabels(final String... labelValues) {
-    final List<String> metricId = asList(labelValues);
-    return metricForLabels(metricId);
-  }
-
-  @Override
-  public T metricForLabels(List<String> labelValues) {
-    final MetricData<T> metricData = children.get(labelValues);
+    final StringsKey stringsKey = new StringsKey(labelValues);
+    final MetricData<T> metricData = children.get(stringsKey);
     // We use get and fallback to computeIfAbsent to eliminate contention
     // in case the key is present.
     // See https://bugs.openjdk.java.net/browse/JDK-8161372 for details.
     if (metricData == null) {
-      return children.computeIfAbsent(labelValues, mappingFunction).getMetric();
+      return children.computeIfAbsent(stringsKey, mappingFunction).getMetric();
     } else {
       return metricData.getMetric();
     }
@@ -42,8 +43,28 @@ public class LabeledChildrenRepo<T> implements ChildMetricRepo<T> {
 
   @Override
   public void forEachMetricData(final Consumer<MetricData<T>> consumer) {
-    for (MetricData<T> metricData : children.values()) {
+    for (final MetricData<T> metricData : children.values()) {
       consumer.accept(metricData);
     }
   }
+
+  // This proved to be faster than using Arrays.asList as the key
+  private static class StringsKey {
+    private final String[] labelValues;
+
+    private StringsKey(final String[] labelValues) {
+      this.labelValues = labelValues;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+      return Arrays.equals(labelValues, ((StringsKey) obj).labelValues);
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(labelValues);
+    }
+  }
+
 }
