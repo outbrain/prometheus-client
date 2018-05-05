@@ -43,9 +43,7 @@ public class LabeledChildrenRepo<T> implements ChildMetricRepo<T> {
 
   @Override
   public void forEachMetricData(final Consumer<MetricData<T>> consumer) {
-    for (final MetricData<T> metricData : children.values()) {
-      consumer.accept(metricData);
-    }
+    children.values().forEach(consumer);
   }
 
   // This proved to be faster than using Arrays.asList as the key
