@@ -38,7 +38,7 @@ abstract class AbstractMetric<T> implements Metric {
               labelValues -> new MetricData<>(createMetric(), labelValues),
               labels -> {
                 NameUtils.validateLabelsCount(getName(), getLabelNames(), labels);
-                NameUtils.validateLabelNames(labels);
+                NameUtils.validateLabelValuesContainText(labels);
               });
     }
   }

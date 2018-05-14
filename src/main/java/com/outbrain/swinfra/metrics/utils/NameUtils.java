@@ -37,7 +37,7 @@ public class NameUtils {
     Validate.isTrue(labelNames.size() == labelValues.length, "%s has the following labels: %s but got: %s", metricName, labelNames, Arrays.toString(labelValues));
   }
 
-  public void validateLabelValuesContainText(final String... labelValues) {
+  public static void validateLabelValuesContainText(final String... labelValues) {
     for (final String labelValue : labelValues) {
       Validate.notBlank(labelValue, "Label values must contain text but got: %s", Arrays.toString(labelValues));
     }
