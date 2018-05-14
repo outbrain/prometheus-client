@@ -1,9 +1,5 @@
 package com.outbrain.swinfra.metrics;
 
-import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
-import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
-import com.outbrain.swinfra.metrics.children.MetricData;
-import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
 import com.outbrain.swinfra.metrics.data.HistogramBucketsConsumer;
 import com.outbrain.swinfra.metrics.data.HistogramData;
 import com.outbrain.swinfra.metrics.data.MetricDataConsumer;
@@ -31,24 +27,25 @@ import static java.util.Arrays.stream;
  * <p>
  * For example - if our histogram is initialized with the buckets 1, 5, 10 then here is how the measurements will be assigned:
  * <table>
- *   <tr>
- *     <th>Measurement</th>
- *     <th>Buckets</th>
- *   </tr>
- *   <tr>
- *     <td>0.5</td>
- *     <td>1, 5, 10, +Inf</td>
- *   </tr>
- *   <tr>
- *     <td>6</td>
- *     <td>10, +Inf</td>
- *   </tr>
+ * <tr>
+ * <th>Measurement</th>
+ * <th>Buckets</th>
+ * </tr>
+ * <tr>
+ * <td>0.5</td>
+ * <td>1, 5, 10, +Inf</td>
+ * </tr>
+ * <tr>
+ * <td>6</td>
+ * <td>10, +Inf</td>
+ * </tr>
  * </table>
  * </p>
  * <p>
- *   If no buckets are provided the histogram will be initialized with the default values
- *   {.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10}
+ * If no buckets are provided the histogram will be initialized with the default values
+ * {.005, .01, .025, .05, .075, .1, .25, .5, .75, 1, 2.5, 5, 7.5, 10}
  * </p>
+ *
  * @see <a href="https://prometheus.io/docs/concepts/metric_types/#histogram">Prometheus summary metric</a>
  * @see <a href="https://prometheus.io/docs/practices/histograms/">Prometheus summary vs. histogram</a>
  */
@@ -89,7 +86,6 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
   }
 
   public void observe(final double value, final String... labelValues) {
-    validateLabelValues(labelValues);
     metricForLabels(labelValues).add(value);
   }
 
@@ -221,10 +217,10 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
     @Override
     public String toString() {
       return "BucketValues{" +
-          "sum=" + sum +
-          ", buckets=" + Arrays.toString(buckets) +
-          ", bucketBounds=" + Arrays.toString(bucketBounds) +
-          '}';
+              "sum=" + sum +
+              ", buckets=" + Arrays.toString(buckets) +
+              ", bucketBounds=" + Arrays.toString(bucketBounds) +
+              '}';
     }
   }
 
@@ -273,12 +269,12 @@ public class Histogram extends AbstractMetric<Histogram.Buckets> implements Timi
      * </p>
      *
      * <p>
-     *   Here are two examples for what the method
-     *   <ul>
-     *     <li>withEqualWidthBuckets(0.5, 1, 1) - [0.5, +Inf]</li>
-     *     <li>withEqualWidthBuckets(0.5, 1, 4) - [0.5, 1.5, 2.5, 3.5, +Inf]</li>
-     *     <li>withEqualWidthBuckets(0.5, 1, 100) - Probably too many buckets</li>
-     *   </ul>
+     * Here are two examples for what the method
+     * <ul>
+     * <li>withEqualWidthBuckets(0.5, 1, 1) - [0.5, +Inf]</li>
+     * <li>withEqualWidthBuckets(0.5, 1, 4) - [0.5, 1.5, 2.5, 3.5, +Inf]</li>
+     * <li>withEqualWidthBuckets(0.5, 1, 100) - Probably too many buckets</li>
+     * </ul>
      * </p>
      *
      * @param start the first bucket to create

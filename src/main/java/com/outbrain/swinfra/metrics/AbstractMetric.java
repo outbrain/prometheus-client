@@ -4,7 +4,7 @@ import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
 import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
 import com.outbrain.swinfra.metrics.children.MetricData;
 import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
-import org.apache.commons.lang3.Validate;
+import com.outbrain.swinfra.metrics.utils.NameUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,9 +32,14 @@ abstract class AbstractMetric<T> implements Metric {
 
   ChildMetricRepo<T> createChildMetricRepo() {
     if (getLabelNames().isEmpty()) {
-      return new UnlabeledChildRepo<>(new MetricData<>(createMetric()));
+      return new UnlabeledChildRepo<>(getName(), new MetricData<>(createMetric()));
     } else {
-      return new LabeledChildrenRepo<>(labelValues -> new MetricData<>(createMetric(), labelValues));
+      return new LabeledChildrenRepo<>(
+              labelValues -> new MetricData<>(createMetric(), labelValues),
+              labels -> {
+                NameUtils.validateLabelsCount(getName(), getLabelNames(), labels);
+                NameUtils.validateLabelNames(labels);
+              });
     }
   }
 
@@ -59,14 +64,6 @@ abstract class AbstractMetric<T> implements Metric {
 
   void initChildMetricRepo() {
     this.childMetricRepo = createChildMetricRepo();
-  }
-
-  void validateLabelValues(final String... labelValues) {
-    Validate.isTrue(labelNames.size() == labelValues.length, "A label value must be supplied for each label name");
-
-    for (final String labelValue : labelValues) {
-      Validate.notBlank(labelValue, "Label names must contain text");
-    }
   }
 
   T metricForLabels(final String... labelValues) {

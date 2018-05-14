@@ -16,10 +16,13 @@ import static java.util.Arrays.asList;
 public class LabeledChildrenRepo<T> implements ChildMetricRepo<T> {
 
   private final ConcurrentMap<StringsKey, MetricData<T>> children = new ConcurrentHashMap<>();
-  private final Function<StringsKey, MetricData<T>> mappingFunction;
+  private final Function<String[], MetricData<T>> mappingFunction;
+  private final Consumer<String[]> labelsValidator;
 
-  public LabeledChildrenRepo(final Function<List<String>, MetricData<T>> mappingFunction) {
-    this.mappingFunction = key -> mappingFunction.apply(asList(key.labelValues));
+  public LabeledChildrenRepo(final Function<List<String>, MetricData<T>> mappingFunction,
+                             final Consumer<String[]> labelsValidator) {
+    this.mappingFunction = labelValues -> mappingFunction.apply(asList(labelValues));
+    this.labelsValidator = labelsValidator;
   }
 
   @Override
@@ -35,7 +38,10 @@ public class LabeledChildrenRepo<T> implements ChildMetricRepo<T> {
     // in case the key is present.
     // See https://bugs.openjdk.java.net/browse/JDK-8161372 for details.
     if (metricData == null) {
-      return children.computeIfAbsent(stringsKey, mappingFunction).getMetric();
+      return children.computeIfAbsent(stringsKey, k -> {
+        labelsValidator.accept(labelValues);
+        return mappingFunction.apply(labelValues);
+      }).getMetric();
     } else {
       return metricData.getMetric();
     }

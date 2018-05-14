@@ -56,12 +56,14 @@ public class Gauge extends AbstractMetric<DoubleSupplier> {
   ChildMetricRepo<DoubleSupplier> createChildMetricRepo() {
     if (valueSuppliers.size() == 1 && getLabelNames().isEmpty()) {
       final DoubleSupplier supplier = valueSuppliers.values().iterator().next();
-      return new UnlabeledChildRepo<>(new MetricData<>(supplier));
+      return new UnlabeledChildRepo<>(getName(), new MetricData<>(supplier));
     } else {
-      final ChildMetricRepo<DoubleSupplier> result = new LabeledChildrenRepo<>(labelValues ->
-                                                                                 new MetricData<>(
-                                                                                   valueSuppliers.get(labelValues),
-                                                                                   labelValues));
+      final ChildMetricRepo<DoubleSupplier> result = new LabeledChildrenRepo<>(
+              labelValues ->
+                      new MetricData<>(
+                              valueSuppliers.get(labelValues),
+                              labelValues), labelValues -> {
+      });
 
       valueSuppliers.keySet().forEach(result::metricForLabels);
       return result;
@@ -116,10 +118,10 @@ public class Gauge extends AbstractMetric<DoubleSupplier> {
 
     private void validateValueSupplierLabels(final int numOfLabels, final String[] labelValues) {
       Validate.isTrue(
-        labelValues.length == numOfLabels,
-        "Labels %s does not contain the expected amount %s",
-        Arrays.toString(labelValues),
-        numOfLabels);
+              labelValues.length == numOfLabels,
+              "Labels %s does not contain the expected amount %s",
+              Arrays.toString(labelValues),
+              numOfLabels);
     }
   }
 }

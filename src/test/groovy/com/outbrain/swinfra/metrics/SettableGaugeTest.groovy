@@ -106,4 +106,27 @@ class SettableGaugeTest extends Specification {
             1 * consumer.accept({it.metric.getAsDouble() == 2d && it.labelValues == ['value2'] })
             0 * consumer.accept(_)
     }
+
+    def 'SettableGauge without labels should throw an exception when attempting to set with labels'() {
+        given:
+        final SettableGauge settableGauge = new SettableGaugeBuilder(NAME, HELP).build()
+
+        when:
+        settableGauge.set(0, "labelValue")
+
+        then:
+        thrown(IllegalArgumentException.class)
+    }
+
+    def 'SettableGauge with labels should throw an exception when attempting to set wrong number of labels'() {
+        given:
+        final SettableGauge settableGauge = new SettableGaugeBuilder(NAME, HELP).withLabels("label1").build()
+
+        when:
+        settableGauge.set(0, "labelValue1", "labelValue2")
+
+        then:
+        thrown(IllegalArgumentException.class)
+    }
+
 }

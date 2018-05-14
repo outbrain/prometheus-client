@@ -7,6 +7,7 @@ import com.outbrain.swinfra.metrics.children.MetricData;
 import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
 import com.outbrain.swinfra.metrics.data.MetricDataConsumer;
 import com.outbrain.swinfra.metrics.utils.MetricType;
+import com.outbrain.swinfra.metrics.utils.NameUtils;
 
 import java.util.function.DoubleSupplier;
 
@@ -20,6 +21,7 @@ import java.util.function.DoubleSupplier;
  * distinction because consecutive calls to the method <i>set</i> will not all show when sampling this metric, rather
  * the last value set will show.
  * </p>
+ *
  * @see <a href="https://prometheus.io/docs/concepts/metric_types/#gauge">Prometheus gauge metric</a>
  */
 public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
@@ -40,6 +42,17 @@ public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
   @Override
   public MetricType getType() {
     return MetricType.GAUGE;
+  }
+
+  ChildMetricRepo<SettableDoubleSupplier> createChildMetricRepo() {
+    if (getLabelNames().isEmpty()) {
+      return new UnlabeledChildRepo<>(getName(), new MetricData<>(createMetric()));
+    } else {
+      return new LabeledChildrenRepo<>(
+              labelValues -> new MetricData<>(createMetric(), labelValues),
+              labelValues -> NameUtils.validateLabelsCount(getName(), getLabelNames(), labelValues)
+      );
+    }
   }
 
   @Override

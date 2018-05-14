@@ -1,10 +1,6 @@
 package com.outbrain.swinfra.metrics;
 
 
-import com.outbrain.swinfra.metrics.children.ChildMetricRepo;
-import com.outbrain.swinfra.metrics.children.LabeledChildrenRepo;
-import com.outbrain.swinfra.metrics.children.MetricData;
-import com.outbrain.swinfra.metrics.children.UnlabeledChildRepo;
 import com.outbrain.swinfra.metrics.data.MetricDataConsumer;
 import com.outbrain.swinfra.metrics.utils.MetricType;
 
@@ -31,7 +27,6 @@ public class Counter extends AbstractMetric<LongAdder> {
   }
 
   public void inc(final long n, final String... labelValues) {
-    validateLabelValues(labelValues);
     metricForLabels(labelValues).add(n);
   }
 

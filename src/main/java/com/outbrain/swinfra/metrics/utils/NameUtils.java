@@ -2,6 +2,8 @@ package com.outbrain.swinfra.metrics.utils;
 
 import org.apache.commons.lang3.Validate;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class NameUtils {
@@ -29,6 +31,16 @@ public class NameUtils {
     Validate.notBlank(name, "The metric's name must contain text");
     Validate.isTrue(METRIC_NAME_PATTERN.matcher(name).matches(),
                     "The metric name '" + name + "' is invalid. See " + PROMETHEUS_NAMING_URL);
+  }
+
+  public static void validateLabelsCount(final String metricName, final List<String> labelNames, final String[] labelValues) {
+    Validate.isTrue(labelNames.size() == labelValues.length, "%s has the following labels: %s but got: %s", metricName, labelNames, Arrays.toString(labelValues));
+  }
+
+  public void validateLabelValuesContainText(final String... labelValues) {
+    for (final String labelValue : labelValues) {
+      Validate.notBlank(labelValue, "Label values must contain text but got: %s", Arrays.toString(labelValues));
+    }
   }
 
 }
