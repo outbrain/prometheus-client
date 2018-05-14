@@ -50,6 +50,7 @@ public class SettableGauge extends AbstractMetric<SettableDoubleSupplier> {
     } else {
       return new LabeledChildrenRepo<>(
               labelValues -> new MetricData<>(createMetric(), labelValues),
+              // Not validating that labels contain text for backward compatibility
               labelValues -> NameUtils.validateLabelsCount(getName(), getLabelNames(), labelValues)
       );
     }

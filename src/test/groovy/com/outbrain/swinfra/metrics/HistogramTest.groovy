@@ -194,6 +194,17 @@ class HistogramTest extends Specification {
             thrown(IllegalArgumentException.class)
     }
 
+    def 'Timer without labels should throw an exception when attempting to start with labels'() {
+        given:
+            final Histogram histogram = new HistogramBuilder(NAME, HELP).build()
+
+        when:
+            histogram.startTimer("labelValue")
+
+        then:
+            thrown(IllegalArgumentException.class)
+    }
+
     @Unroll
     def 'Histogram with labels should throw an exception when attempting to observe a value with labels #labels'() {
         given:
@@ -201,6 +212,21 @@ class HistogramTest extends Specification {
 
         when:
             histogram.observe(1, labels as String[])
+
+        then:
+            thrown(IllegalArgumentException.class)
+
+        where:
+            labels << [[], ["v1", ""], ["v1", "v2", "v3"]]
+    }
+
+    @Unroll
+    def 'Timer with labels should throw an exception when attempting to start with labels #labels'() {
+        given:
+            final Histogram histogram = new HistogramBuilder(NAME, HELP).withLabels("l1", "l2").build()
+
+        when:
+            histogram.startTimer(labels as String[])
 
         then:
             thrown(IllegalArgumentException.class)

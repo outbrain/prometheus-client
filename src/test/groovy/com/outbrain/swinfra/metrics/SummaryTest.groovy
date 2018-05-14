@@ -177,4 +177,15 @@ class SummaryTest extends Specification {
         then:
             thrown(IllegalArgumentException.class)
     }
+
+    def 'Timer without labels should throw an exception when attempting to start with labels'() {
+        given:
+            final Summary summary = new SummaryBuilder(NAME, HELP).build()
+
+        when:
+            summary.startTimer("labelValue")
+
+        then:
+            thrown(IllegalArgumentException.class)
+    }
 }
