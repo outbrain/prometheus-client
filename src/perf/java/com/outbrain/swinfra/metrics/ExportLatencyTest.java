@@ -4,7 +4,7 @@ import com.outbrain.swinfra.metrics.client.IoPrometheusClient;
 import com.outbrain.swinfra.metrics.client.OutbrainClient;
 import com.outbrain.swinfra.metrics.client.OutputMode;
 import com.outbrain.swinfra.metrics.client.PerfTestClient;
-import com.outbrain.swinfra.metrics.exporter.CollectorRegistryExporterFactory;
+import com.outbrain.swinfra.metrics.exporter.MetricExporterFactory;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -40,8 +40,8 @@ public class ExportLatencyTest {
     private ByteArrayOutputStream currentBuffer;
 
 
-    private final OutbrainClient outbrainTextClient = new OutbrainClient(OutputMode.TEXT, CollectorRegistryExporterFactory.TEXT_004);
-    private final OutbrainClient outbrainProtobufClient = new OutbrainClient(OutputMode.PROTOBUF, CollectorRegistryExporterFactory.PROTOBUF);
+    private final OutbrainClient outbrainTextClient = new OutbrainClient(OutputMode.TEXT, MetricExporterFactory.TEXT_004);
+    private final OutbrainClient outbrainProtobufClient = new OutbrainClient(OutputMode.PROTOBUF, MetricExporterFactory.PROTOBUF);
     private final IoPrometheusClient ioPrometheusClient = new IoPrometheusClient();
 
     @Benchmark

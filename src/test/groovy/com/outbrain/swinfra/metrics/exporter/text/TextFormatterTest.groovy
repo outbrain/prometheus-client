@@ -9,19 +9,19 @@ import java.util.function.DoubleSupplier
 class TextFormatterTest extends Specification {
 
     @Subject TextFormatter formatter
+    private MetricRegistry registry = Mock(MetricRegistry)
 
     def 'appends counter samples in text format to given output buffer'() {
         given:
             ByteArrayOutputStream output = new ByteArrayOutputStream()
-            MetricCollector collector = Mock(MetricCollector)
             Counter counter1 = new Counter.CounterBuilder('Counter1', 'help').build()
             counter1.inc(17)
             Counter counter2 = new Counter.CounterBuilder('Counter2', 'help').withLabels('label').build()
             counter2.inc(19, 'labelValue')
-            collector.iterator() >> [counter1, counter2].iterator()
-            collector.staticLabels >> ['a':'b']
+            registry.iterator() >> [counter1, counter2].iterator()
+            registry.staticLabels >> ['a':'b']
 
-            formatter = new TextFormatter(collector)
+            formatter = new TextFormatter(Collections.singleton(registry))
         when:
             formatter.exportTo(output)
         then:
@@ -37,7 +37,6 @@ Counter2{a="b",label="labelValue",} 19.0
     def 'appends a gauge samples in text format to given output buffer'() {
         given:
             ByteArrayOutputStream output = new ByteArrayOutputStream()
-            MetricCollector collector = Mock(MetricCollector)
             Gauge gauge1 = new Gauge.GaugeBuilder('Gauge1', 'help').
                     withValueSupplier({ 17d } as DoubleSupplier).build()
 
@@ -48,10 +47,10 @@ Counter2{a="b",label="labelValue",} 19.0
             SettableGauge settableGauge = new SettableGauge.SettableGaugeBuilder('SettableGauge', 'help').
                     build()
             settableGauge.set(23d)
-            collector.iterator() >> [gauge1, gauge2, settableGauge].iterator()
-            collector.staticLabels >> ['a':'b']
+            registry.iterator() >> [gauge1, gauge2, settableGauge].iterator()
+            registry.staticLabels >> ['a':'b']
 
-            formatter = new TextFormatter(collector)
+            formatter = new TextFormatter(Collections.singleton(registry))
         when:
             formatter.exportTo(output)
         then:
@@ -70,15 +69,14 @@ SettableGauge{a="b",} 23.0
     def 'appends summary samples in text format to given output buffer'() {
         given:
             ByteArrayOutputStream output = new ByteArrayOutputStream()
-            MetricCollector collector = Mock(MetricCollector)
             Summary summary1 = new Summary.SummaryBuilder('Summary1', 'help').build()
             summary1.observe(17)
             Summary summary2 = new Summary.SummaryBuilder('Summary2', 'help').withLabels('label').build()
             summary2.observe(19, 'labelValue')
-            collector.iterator() >> [summary1, summary2].iterator()
-            collector.staticLabels >> ['a':'b']
+            registry.iterator() >> [summary1, summary2].iterator()
+            registry.staticLabels >> ['a':'b']
 
-            formatter = new TextFormatter(collector)
+            formatter = new TextFormatter(Collections.singleton(registry))
         when:
             formatter.exportTo(output)
         then:
@@ -108,7 +106,6 @@ Summary2_sum{a="b",label="labelValue",} 19.0
     def 'appends histogram samples in text format to given output buffer'() {
         given:
             ByteArrayOutputStream output = new ByteArrayOutputStream()
-            MetricCollector collector = Mock(MetricCollector)
             Histogram histogram1 = new Histogram.HistogramBuilder('Histogram1', 'help').build()
             histogram1.observe(0.17)
             histogram1.observe(17)
@@ -116,10 +113,10 @@ Summary2_sum{a="b",label="labelValue",} 19.0
                     withLabels('label').withBuckets(1, 10, 100).build()
             histogram2.observe(0.19, 'labelValue')
             histogram2.observe(19, 'labelValue')
-            collector.iterator() >> [histogram1, histogram2].iterator()
-            collector.staticLabels >> ['a':'b']
+            registry.iterator() >> [histogram1, histogram2].iterator()
+            registry.staticLabels >> ['a':'b']
 
-            formatter = new TextFormatter(collector)
+            formatter = new TextFormatter(Collections.singleton(registry))
         when:
             formatter.exportTo(output)
         then:

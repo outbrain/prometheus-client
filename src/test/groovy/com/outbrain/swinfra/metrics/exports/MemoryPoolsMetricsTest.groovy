@@ -1,6 +1,5 @@
 package com.outbrain.swinfra.metrics.exports
 
-import com.outbrain.swinfra.metrics.MetricCollector
 import com.outbrain.swinfra.metrics.MetricRegistry
 import spock.lang.Specification
 import spock.lang.Subject
@@ -10,7 +9,6 @@ import java.lang.management.MemoryMXBean
 import java.lang.management.MemoryPoolMXBean
 import java.lang.management.MemoryUsage
 import java.util.function.Predicate
-
 
 class MemoryPoolsMetricsTest extends Specification {
 
@@ -34,20 +32,19 @@ class MemoryPoolsMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             memoryPoolMetrics.registerMetricsTo(registry)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.find { it.name == 'jvm_memory_bytes_used' }.getValue('heap') == 1
-            collector.find { it.name == 'jvm_memory_bytes_committed' }.getValue('heap') == 2
-            collector.find { it.name == 'jvm_memory_bytes_max' }.getValue('heap') == 3
-            collector.find { it.name == 'jvm_memory_bytes_used' }.getValue('nonheap') == 4
-            collector.find { it.name == 'jvm_memory_bytes_committed' }.getValue('nonheap') == 5
-            collector.find { it.name == 'jvm_memory_bytes_max' }.getValue('nonheap') == 6
-            collector.find { it.name == 'jvm_memory_pool_bytes_used' }.getValue('pool1') == 11
-            collector.find { it.name == 'jvm_memory_pool_bytes_committed' }.getValue('pool1') == 12
-            collector.find { it.name == 'jvm_memory_pool_bytes_max' }.getValue('pool1') == 13
-            collector.find { it.name == 'jvm_memory_pool_bytes_used' }.getValue('pool2') == 21
-            collector.find { it.name == 'jvm_memory_pool_bytes_committed' }.getValue('pool2') == 22
-            collector.find { it.name == 'jvm_memory_pool_bytes_max' }.getValue('pool2') == 23
+            registry.find { it.name == 'jvm_memory_bytes_used' }.getValue('heap') == 1
+            registry.find { it.name == 'jvm_memory_bytes_committed' }.getValue('heap') == 2
+            registry.find { it.name == 'jvm_memory_bytes_max' }.getValue('heap') == 3
+            registry.find { it.name == 'jvm_memory_bytes_used' }.getValue('nonheap') == 4
+            registry.find { it.name == 'jvm_memory_bytes_committed' }.getValue('nonheap') == 5
+            registry.find { it.name == 'jvm_memory_bytes_max' }.getValue('nonheap') == 6
+            registry.find { it.name == 'jvm_memory_pool_bytes_used' }.getValue('pool1') == 11
+            registry.find { it.name == 'jvm_memory_pool_bytes_committed' }.getValue('pool1') == 12
+            registry.find { it.name == 'jvm_memory_pool_bytes_max' }.getValue('pool1') == 13
+            registry.find { it.name == 'jvm_memory_pool_bytes_used' }.getValue('pool2') == 21
+            registry.find { it.name == 'jvm_memory_pool_bytes_committed' }.getValue('pool2') == 22
+            registry.find { it.name == 'jvm_memory_pool_bytes_max' }.getValue('pool2') == 23
     }
 
     @Unroll
@@ -56,9 +53,8 @@ class MemoryPoolsMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             memoryPoolMetrics.registerMetricsTo(registry, filter as Predicate)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.collect {it.name}.sort() == expected
+            registry.collect {it.name}.sort() == expected
         where:
             filter                                          | expected
             { name -> false }                               | []

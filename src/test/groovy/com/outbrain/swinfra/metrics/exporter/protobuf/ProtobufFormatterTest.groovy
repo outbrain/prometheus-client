@@ -14,10 +14,10 @@ import static java.lang.Double.POSITIVE_INFINITY
 class ProtobufFormatterTest extends Specification {
 
     ByteArrayOutputStream output = new ByteArrayOutputStream()
-    MetricCollector collector = Mock(MetricCollector)
+    MetricRegistry registry = Mock(MetricRegistry)
 
     @Subject
-    ProtobufFormatter formatter = new ProtobufFormatter(collector)
+    ProtobufFormatter formatter = new ProtobufFormatter(Collections.singleton(registry))
 
     def 'appends a collector counter metric samples in protobuf format to given output buffer'() {
         given:
@@ -29,8 +29,8 @@ class ProtobufFormatterTest extends Specification {
             Counter counter3 = new Counter.CounterBuilder('Counter3', 'help').withLabels('label1', 'label2').build()
             counter3.inc(29, 'A', 'B')
 
-            collector.iterator() >> [counter1, counter2, counter3].iterator()
-            collector.staticLabels >> ['a': 'b']
+            registry.iterator() >> [counter1, counter2, counter3].iterator()
+            registry.staticLabels >> ['a': 'b']
 
         when:
             formatter.exportTo(output)
@@ -67,8 +67,8 @@ class ProtobufFormatterTest extends Specification {
                     build()
             Gauge gauge3 = new Gauge.GaugeBuilder('Gauge3', 'help').withLabels('label1', 'label2').withValueSupplier({ 29d } as DoubleSupplier, 'A', 'B').build()
 
-            collector.iterator() >> [gauge1, gauge2, gauge3].iterator()
-            collector.staticLabels >> ['a': 'b']
+            registry.iterator() >> [gauge1, gauge2, gauge3].iterator()
+            registry.staticLabels >> ['a': 'b']
 
         when:
             formatter.exportTo(output)
@@ -107,8 +107,8 @@ class ProtobufFormatterTest extends Specification {
             Summary summary3 = new Summary.SummaryBuilder('Summary3', 'help').withLabels('label1', 'label2').build()
             summary3.observe(29, 'A', 'B')
 
-            collector.iterator() >> [summary1, summary2, summary3].iterator()
-            collector.staticLabels >> ['a': 'b']
+            registry.iterator() >> [summary1, summary2, summary3].iterator()
+            registry.staticLabels >> ['a': 'b']
 
         when:
             formatter.exportTo(output)
@@ -163,8 +163,8 @@ class ProtobufFormatterTest extends Specification {
             histogram2.observe(17, 'A1', 'A2')
             histogram2.observe(19, 'B1', 'B2')
 
-            collector.iterator() >> [histogram1, histogram2].iterator()
-            collector.staticLabels >> ['a': 'b']
+            registry.iterator() >> [histogram1, histogram2].iterator()
+            registry.staticLabels >> ['a': 'b']
 
         when:
             formatter.exportTo(output)
@@ -213,8 +213,8 @@ class ProtobufFormatterTest extends Specification {
             histogram.observe(2, 'histogram')
             histogram.observe(3, 'histogram')
 
-            collector.iterator() >> [counter, gauge, summary, histogram].iterator()
-            collector.staticLabels >> ['a': 'b']
+            registry.iterator() >> [counter, gauge, summary, histogram].iterator()
+            registry.staticLabels >> ['a': 'b']
 
         when:
             formatter.exportTo(output)

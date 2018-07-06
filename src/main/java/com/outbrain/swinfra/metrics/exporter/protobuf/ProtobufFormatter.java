@@ -1,43 +1,44 @@
 package com.outbrain.swinfra.metrics.exporter.protobuf;
 
 import com.outbrain.swinfra.metrics.Metric;
-import com.outbrain.swinfra.metrics.MetricCollector;
+import com.outbrain.swinfra.metrics.MetricRegistry;
 import com.outbrain.swinfra.metrics.data.HistogramData;
 import com.outbrain.swinfra.metrics.data.MetricDataConsumer;
 import com.outbrain.swinfra.metrics.data.SummaryData;
-import com.outbrain.swinfra.metrics.exporter.CollectorExporter;
+import com.outbrain.swinfra.metrics.exporter.MetricExporter;
 import io.prometheus.client.Metrics;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-
-import static java.util.Objects.requireNonNull;
 
 /**
  * Protocol buffers formatter
  *
  * @see <a href="https://github.com/prometheus/client_model/blob/master/metrics.proto">metrics.proto</a>
  */
-public class ProtobufFormatter implements CollectorExporter {
+public class ProtobufFormatter implements MetricExporter {
 
   public static final String CONTENT_TYPE_PROTOBUF = "application/vnd.google.protobuf; " +
     "proto=io.prometheus.client.MetricFamily; " +
     "encoding=delimited";
 
-  private final MetricCollector metricCollector;
+  private final Collection<MetricRegistry> registries;
 
-  public ProtobufFormatter(final MetricCollector metricCollector) {
-    this.metricCollector = requireNonNull(metricCollector, "metricCollector may not be null");
+  public ProtobufFormatter(final Collection<MetricRegistry> registries) {
+    this.registries = registries;
   }
 
   @Override
   public void exportTo(final OutputStream stream) throws IOException {
-    final ProtobufMetricDataConsumer consumer = new ProtobufMetricDataConsumer(metricCollector.getStaticLabels(), stream);
-    for (final Metric metric : metricCollector) {
-      consumer.consumeMetric(metric);
+    for (final MetricRegistry registry : registries) {
+      final ProtobufMetricDataConsumer consumer = new ProtobufMetricDataConsumer(registry.getStaticLabels(), stream);
+      for (final Metric metric : registry) {
+        consumer.consumeMetric(metric);
+      }
     }
   }
 

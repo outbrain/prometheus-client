@@ -1,6 +1,6 @@
 package com.outbrain.swinfra.metrics.exports
 
-import com.outbrain.swinfra.metrics.MetricCollector
+
 import com.outbrain.swinfra.metrics.MetricRegistry
 import spock.lang.Specification
 import spock.lang.Subject
@@ -25,11 +25,10 @@ class ClassLoadingMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             classLoadingMetrics.registerMetricsTo(registry)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.find { it.name == 'jvm_classes_loaded' }.getValue() == 1
-            collector.find { it.name == 'jvm_classes_loaded_total' }.getValue() == 2
-            collector.find { it.name == 'jvm_classes_unloaded_total' }.getValue() == 3
+            registry.find { it.name == 'jvm_classes_loaded' }.getValue() == 1
+            registry.find { it.name == 'jvm_classes_loaded_total' }.getValue() == 2
+            registry.find { it.name == 'jvm_classes_unloaded_total' }.getValue() == 3
     }
 
     @Unroll
@@ -38,9 +37,8 @@ class ClassLoadingMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             classLoadingMetrics.registerMetricsTo(registry, filter as Predicate)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.collect {it.name }.sort() == expected
+            registry.collect {it.name }.sort() == expected
         where:
             filter                                           | expected
                     { name -> false }                        | []

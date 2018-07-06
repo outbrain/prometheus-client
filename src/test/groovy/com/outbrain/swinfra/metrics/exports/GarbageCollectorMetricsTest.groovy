@@ -1,6 +1,6 @@
 package com.outbrain.swinfra.metrics.exports
 
-import com.outbrain.swinfra.metrics.MetricCollector
+
 import com.outbrain.swinfra.metrics.MetricRegistry
 import spock.lang.Specification
 import spock.lang.Subject
@@ -29,12 +29,11 @@ class GarbageCollectorMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             gcMetrics.registerMetricsTo(registry)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.find { it.name == 'jvm_gc_collection_count' }.getValue('gc1') == 1
-            collector.find { it.name == 'jvm_gc_collection_count' }.getValue('gc2') == 2
-            collector.find { it.name == 'jvm_gc_collection_seconds' }.getValue('gc1') == 11
-            collector.find { it.name == 'jvm_gc_collection_seconds' }.getValue('gc2') == 22
+            registry.find { it.name == 'jvm_gc_collection_count' }.getValue('gc1') == 1
+            registry.find { it.name == 'jvm_gc_collection_count' }.getValue('gc2') == 2
+            registry.find { it.name == 'jvm_gc_collection_seconds' }.getValue('gc1') == 11
+            registry.find { it.name == 'jvm_gc_collection_seconds' }.getValue('gc2') == 22
     }
 
     @Unroll
@@ -43,9 +42,8 @@ class GarbageCollectorMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             gcMetrics.registerMetricsTo(registry, filter as Predicate)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.collect {it.name }.sort() == expected
+            registry.collect {it.name }.sort() == expected
         where:
             filter                                 | expected
                     { name -> false }                             | []

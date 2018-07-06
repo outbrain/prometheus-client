@@ -1,6 +1,5 @@
 package com.outbrain.swinfra.metrics.exports
 
-import com.outbrain.swinfra.metrics.MetricCollector
 import com.outbrain.swinfra.metrics.MetricRegistry
 import spock.lang.Specification
 import spock.lang.Subject
@@ -27,14 +26,13 @@ class ThreadMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             threadMetrics.registerMetricsTo(registry)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.find { it.name == 'jvm_threads_current' }.getValue() == 300
-            collector.find { it.name == 'jvm_threads_daemon' }.getValue() == 200
-            collector.find { it.name == 'jvm_threads_peak' }.getValue() == 301
-            collector.find { it.name == 'jvm_threads_started_total' }.getValue() == 503
-            collector.find { it.name == 'jvm_threads_deadlocked' }.getValue() == 3
-            collector.find { it.name == 'jvm_threads_deadlocked_monitor' }.getValue() == 3
+            registry.find { it.name == 'jvm_threads_current' }.getValue() == 300
+            registry.find { it.name == 'jvm_threads_daemon' }.getValue() == 200
+            registry.find { it.name == 'jvm_threads_peak' }.getValue() == 301
+            registry.find { it.name == 'jvm_threads_started_total' }.getValue() == 503
+            registry.find { it.name == 'jvm_threads_deadlocked' }.getValue() == 3
+            registry.find { it.name == 'jvm_threads_deadlocked_monitor' }.getValue() == 3
     }
 
     @Unroll
@@ -43,9 +41,8 @@ class ThreadMetricsTest extends Specification {
             final MetricRegistry registry = new MetricRegistry()
         when:
             threadMetrics.registerMetricsTo(registry, filter as Predicate)
-            MetricCollector collector = new MetricCollector(registry)
         then:
-            collector.collect {it.name }.sort() == expected
+            registry.collect {it.name }.sort() == expected
         where:
             filter                                 | expected
             { name -> false }                      | []

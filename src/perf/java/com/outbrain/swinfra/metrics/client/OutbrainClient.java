@@ -2,41 +2,38 @@ package com.outbrain.swinfra.metrics.client;
 
 import com.outbrain.swinfra.metrics.Counter;
 import com.outbrain.swinfra.metrics.Histogram;
-import com.outbrain.swinfra.metrics.MetricCollector;
-import com.outbrain.swinfra.metrics.MetricCollectorRegistry;
 import com.outbrain.swinfra.metrics.MetricRegistry;
-import com.outbrain.swinfra.metrics.exporter.CollectorRegistryExporter;
-import com.outbrain.swinfra.metrics.exporter.CollectorRegistryExporterFactory;
+import com.outbrain.swinfra.metrics.exporter.MetricExporter;
+import com.outbrain.swinfra.metrics.exporter.MetricExporterFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collections;
 
 import static java.util.Collections.emptyMap;
 
 public class OutbrainClient extends AbstractPerfClient {
 
-    private final CollectorRegistryExporterFactory collectorRegistryExporterFactory;
-    private CollectorRegistryExporter formatter;
+    private final MetricExporterFactory metricExporterFactory;
+    private MetricExporter formatter;
 
-    public OutbrainClient(final OutputMode mode, final CollectorRegistryExporterFactory collectorRegistryExporterFactory) {
+    public OutbrainClient(final OutputMode mode, final MetricExporterFactory metricExporterFactory) {
         super(mode);
-        this.collectorRegistryExporterFactory = collectorRegistryExporterFactory;
+        this.metricExporterFactory = metricExporterFactory;
     }
 
     @Override
     public void setUp() {
-        final MetricCollectorRegistry metricCollectorRegistry = new MetricCollectorRegistry();
-        metricCollectorRegistry.register(createCollector());
-        formatter = collectorRegistryExporterFactory.create(metricCollectorRegistry);
+        formatter = metricExporterFactory.create(Collections.singleton(createMetricRegistry()));
     }
 
     @Override
     public void executeLogic(final OutputStream outputStream) throws IOException {
-        formatter.export(outputStream);
+        formatter.exportTo(outputStream);
     }
 
-    private MetricCollector createCollector() {
-        final MetricRegistry registry = new MetricRegistry();
+    private MetricRegistry createMetricRegistry() {
+        final MetricRegistry registry = new MetricRegistry(emptyMap());
         final Counter counter = new Counter.CounterBuilder("Counter" + NAME, HELP)
             .withLabels("label1", "label2")
             .build();
@@ -52,6 +49,6 @@ public class OutbrainClient extends AbstractPerfClient {
         registry.getOrRegister(counter);
         registry.getOrRegister(histogram);
 
-        return new MetricCollector(registry, emptyMap());
+        return registry;
     }
 }

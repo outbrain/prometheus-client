@@ -1,17 +1,21 @@
 package com.outbrain.swinfra.metrics;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static java.util.Objects.requireNonNull;
 
-public class MetricRegistry {
+public class MetricRegistry implements Iterable<Metric> {
 
   private final ConcurrentMap<String, Metric> allMetrics = new ConcurrentHashMap<>(100);
-  private final Map<String, Metric> allMetricsView = Collections.unmodifiableMap(allMetrics);
+  private final Map<String, String> staticLabels;
+
+  public MetricRegistry(final Map<String, String> staticLabels) {
+    this.staticLabels = staticLabels;
+  }
 
   /**
    * Registers a metric in this registry if it doesn't already exist, and returns the existing metric if the same
@@ -48,7 +52,17 @@ public class MetricRegistry {
   }
 
   Collection<Metric> all() {
-    return allMetricsView.values();
+    return allMetrics.values();
   }
+
+  public Map<String, String> getStaticLabels() {
+    return staticLabels;
+  }
+
+  @Override
+  public Iterator<Metric> iterator() {
+    return all().iterator();
+  }
+
 
 }

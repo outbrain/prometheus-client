@@ -1,21 +1,22 @@
 package com.outbrain.swinfra.metrics.exporter.text;
 
 import com.outbrain.swinfra.metrics.Metric;
-import com.outbrain.swinfra.metrics.MetricCollector;
+import com.outbrain.swinfra.metrics.MetricRegistry;
 import com.outbrain.swinfra.metrics.data.HistogramData;
 import com.outbrain.swinfra.metrics.data.MetricDataConsumer;
 import com.outbrain.swinfra.metrics.data.SummaryData;
-import com.outbrain.swinfra.metrics.exporter.CollectorExporter;
+import com.outbrain.swinfra.metrics.exporter.MetricExporter;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TextFormatter implements CollectorExporter {
+public class TextFormatter implements MetricExporter {
     public static final String CONTENT_TYPE_004 = "text/plain; version=0.0.4; charset=utf-8";
 
     public static final String QUANTILE_LABEL = "quantile";
@@ -24,25 +25,27 @@ public class TextFormatter implements CollectorExporter {
     public static final String BUCKET_LABEL = "le";
     public static final String SAMPLE_NAME_BUCKET_SUFFIX = "_bucket";
 
-    private final MetricCollector metricCollector;
+    private final Collection<MetricRegistry> registries;
     private final Map<Metric, String> headerByMetric = new ConcurrentHashMap<>();
 
-    public TextFormatter(final MetricCollector metricCollector) {
-        this.metricCollector = metricCollector;
+    public TextFormatter(final Collection<MetricRegistry> registries) {
+        this.registries = registries;
     }
 
 
     @Override
     public void exportTo(final OutputStream outputStream) throws IOException {
         final Writer stream = new OutputStreamWriter(outputStream);
-        final TextMetricDataConsumer consumer = new TextMetricDataConsumer(metricCollector.getStaticLabels(), stream);
-        for (final Metric metric : metricCollector) {
-            final String header = headerByMetric.computeIfAbsent(metric, this::createHeader);
-            stream.append(header);
+        for (final MetricRegistry registry : registries) {
+            final TextMetricDataConsumer consumer = new TextMetricDataConsumer(registry.getStaticLabels(), stream);
+            for (final Metric metric : registry) {
+                final String header = headerByMetric.computeIfAbsent(metric, this::createHeader);
+                stream.append(header);
 
-            metric.forEachMetricData(consumer);
+                metric.forEachMetricData(consumer);
+            }
+            stream.flush();
         }
-        stream.flush();
     }
 
     private static class TextMetricDataConsumer implements MetricDataConsumer {
